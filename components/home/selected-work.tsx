@@ -1,10 +1,7 @@
 import { ProjectCard } from "@/components/work/project-card";
 
-// TODO: replace with Adam's five real Product Manager case studies.
-// Each slot below is a structural placeholder only — no project names,
-// summaries, roles, or metrics have been invented.
-const PLACEHOLDER_PROJECTS = Array.from({ length: 5 }, (_, i) => ({
-  title: `Project 0${i + 1}`,
+const PLACEHOLDER_PROJECTS = Array.from({ length: 4 }, (_, i) => ({
+  title: `Project 0${i + 2}`,
   isPlaceholder: true as const,
 }));
 
@@ -24,6 +21,14 @@ export function SelectedWork() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <ProjectCard
+          title="Single Source of Truth"
+          category="Systems · Data · Operations"
+          summary="A company-wide synchronization initiative connecting product, sales, manufacturing, logistics, and engineering data."
+          role="Product leadership"
+          href="/work/single-source-of-truth"
+          visual="ssot"
+        />
         {PLACEHOLDER_PROJECTS.map((project) => (
           <ProjectCard
             key={project.title}
