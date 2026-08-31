@@ -8,7 +8,7 @@ export interface ProjectCardProps {
   visualSrc?: string;
   href?: string;
   isPlaceholder?: boolean;
-  visual?: "ssot";
+  visual?: "ssot" | "check2go";
 }
 
 function SsotVisual() {
@@ -34,6 +34,35 @@ function SsotVisual() {
   );
 }
 
+function Check2GoVisual() {
+  const stages = ["Idea", "Validate", "Build", "Alpha"];
+
+  return (
+    <div className="relative aspect-[4/3] overflow-hidden border-b border-border bg-[#071512] p-5">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_72%_22%,rgba(45,212,191,0.18),transparent_48%)]" />
+      <div className="relative flex h-full flex-col justify-between">
+        <div className="flex items-start justify-between">
+          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-emerald-200/55">TravelTech · USA</span>
+          <span className="rounded-full border border-emerald-300/20 px-2 py-1 font-mono text-[9px] uppercase tracking-wider text-emerald-200/50">0→1</span>
+        </div>
+        <div>
+          <div className="mb-4 flex items-center gap-1.5">
+            {stages.map((stage, index) => (
+              <div key={stage} className="flex min-w-0 flex-1 items-center gap-1.5">
+                <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-300/70" />
+                {index < stages.length - 1 && <span className="h-px flex-1 bg-emerald-300/20" />}
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-4 gap-2 font-mono text-[8px] text-emerald-100/40">
+            {stages.map((stage) => <span key={stage}>{stage}</span>)}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function ProjectCard({
   title,
   category,
@@ -48,6 +77,8 @@ export function ProjectCard({
     <div className="group flex h-full flex-col justify-between overflow-hidden rounded-lg border border-border bg-surface transition-colors hover:border-white/20">
       {visual === "ssot" ? (
         <SsotVisual />
+      ) : visual === "check2go" ? (
+        <Check2GoVisual />
       ) : visualSrc ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img

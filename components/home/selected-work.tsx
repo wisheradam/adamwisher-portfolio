@@ -1,7 +1,7 @@
 import { ProjectCard } from "@/components/work/project-card";
 
-const PLACEHOLDER_PROJECTS = Array.from({ length: 4 }, (_, i) => ({
-  title: `Project 0${i + 2}`,
+const PLACEHOLDER_PROJECTS = Array.from({ length: 3 }, (_, i) => ({
+  title: `Project 0${i + 3}`,
   isPlaceholder: true as const,
 }));
 
@@ -28,6 +28,14 @@ export function SelectedWork() {
           role="Product leadership"
           href="/work/single-source-of-truth"
           visual="ssot"
+        />
+        <ProjectCard
+          title="Check2Go"
+          category="TravelTech · 0→1 · USA"
+          summary="A travel startup led end to end—from the first concept and team build to alpha, localization, and investor readiness."
+          role="Product Lead · Project Owner"
+          href="/work/check2go"
+          visual="check2go"
         />
         {PLACEHOLDER_PROJECTS.map((project) => (
           <ProjectCard

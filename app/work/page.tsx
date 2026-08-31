@@ -33,6 +33,14 @@ export default function WorkPage() {
             href="/work/single-source-of-truth"
             visual="ssot"
           />
+          <ProjectCard
+            title="Check2Go"
+            category="TravelTech · 0→1 · USA"
+            summary="A travel startup led end to end—from the first concept and team build to alpha, localization, and investor readiness."
+            role="Product Lead · Project Owner"
+            href="/work/check2go"
+            visual="check2go"
+          />
         </div>
       </section>
     </main>
