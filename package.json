@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "validate:ask-adam": "node scripts/validate-ask-adam.mjs"
   },
   "dependencies": {
     "@splinetool/react-spline": "^3.1.1",

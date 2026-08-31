@@ -1,0 +1,7 @@
+import type { KnowledgeRecord } from "./types";
+const source = [{kind:"linkedin-profile-pdf" as const,label:"LinkedIn profile PDF, Clean Cup experience",locator:"pages 4-6",verified:true}];
+export const achievements: KnowledgeRecord[] = [
+  {id:"achievement-clean-cup-costs",category:"achievement",title:"Reduced operational costs by 14%",organization:"Clean Cup LLC",period:{from:"2020-10",to:"2023-03"},summary:"Product-led automation reduced operational costs by 14%.",tags:["metric","cost reduction","automation","clean cup"],relatedIds:["exp-clean-cup-senior"],evidence:source,confidence:"high",public:true},
+  {id:"achievement-clean-cup-revenue",category:"achievement",title:"Doubled B2C revenue",organization:"Clean Cup LLC",period:{from:"2020-10",to:"2023-03"},summary:"B2C revenue doubled in under three years while the digital ecosystem scaled.",tags:["metric","revenue","growth","b2c","clean cup"],relatedIds:["exp-clean-cup-senior"],evidence:source,confidence:"high",public:true},
+  {id:"achievement-clean-cup-online-share",category:"achievement",title:"Grew online retail share from 0% to 27%",organization:"Clean Cup LLC",period:{from:"2019-10",to:"2020-09"},summary:"Online retail reached 27% of revenue within one year after e-commerce launched.",facts:["The first e-commerce platform was delivered in three months."],tags:["metric","ecommerce","online retail","launch","clean cup"],relatedIds:["exp-clean-cup-pm"],evidence:source,confidence:"high",public:true},
+];

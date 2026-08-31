@@ -103,11 +103,17 @@ state, suggested questions, Enter-to-submit, accessible labels, and a
 response thread — all live in `components/home/ask-adam.tsx` and POST to
 `/api/ask-adam`.
 
-The route itself (`app/api/ask-adam/route.ts`) is a real, working stub: it
-validates the request, calls no external AI provider, exposes no API key,
-and returns a clearly-labeled placeholder answer. Wiring it to Bedrock plus
-Adam's knowledge base is the next step — env var names are sketched in
-`.env.example`.
+The route now queries a structured, evidence-backed knowledge base in
+`data/knowledge`, retrieves only the most relevant public records, and returns
+an answer. It works without an external database or AI provider. When the
+optional `ASK_ADAM_LLM_*` server variables in `.env.example` are configured,
+the route passes only bounded retrieved context to an OpenAI-compatible chat
+endpoint. Provider failures fall back to an extractive answer.
+
+Private contact details and identity aliases are excluded from the repository.
+AWS CLF-C02 courses are labeled as certification preparation, not an AWS
+certification. See `data/knowledge/README.md` for the data contract and
+maintenance rules.
 
 ## 5. Production-readiness pass (this update)
 

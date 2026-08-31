@@ -15,6 +15,7 @@ export interface AskAdamRequest {
 
 export interface AskAdamResponse {
   answer: string;
+  sources?: Array<{ id: string; title: string; category: string }>;
 }
 
 export interface AskAdamErrorResponse {

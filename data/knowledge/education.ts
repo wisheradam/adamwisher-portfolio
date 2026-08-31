@@ -1,0 +1,6 @@
+import type { KnowledgeRecord } from "./types";
+
+export const education: KnowledgeRecord[] = [
+  { id:"edu-yandex-product", category:"education", title:"Diploma of Professional Retraining - IT Product Management", organization:"Yandex Practicum", period:{from:"2025-08",to:"2026-07"}, summary:"Professional retraining in IT Product Management.", skills:["Product Management","Product Discovery","Product Strategy","Product Analytics"], tags:["yandex practicum","education","product management","diploma","professional retraining"], evidence:[{kind:"linkedin-profile-pdf",label:"LinkedIn profile PDF, education",locator:"page 9",verified:true}], confidence:"high", public:true },
+  { id:"edu-minsk-economics", category:"education", title:"Master of Economics Degree - Economics and Enterprise Management", organization:"Minsk Innovation University", period:{from:"2000-09",to:"2006-06"}, summary:"Higher education in economics and enterprise management.", skills:["Economics","Enterprise Management","Business Management"], tags:["degree","economics","management","university"], evidence:[{kind:"linkedin-profile-pdf",label:"LinkedIn profile PDF, education",locator:"page 9",verified:true}], confidence:"high", public:true },
+];

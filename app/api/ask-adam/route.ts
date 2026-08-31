@@ -4,19 +4,11 @@ import type {
   AskAdamResponse,
   AskAdamErrorResponse,
 } from "@/types/ask-adam";
-
-// TODO(ask-adam-backend): wire this up to the real pipeline:
-//   Browser -> /api/ask-adam -> server-side call -> Amazon Bedrock -> Adam's
-//   knowledge base -> response.
-//
-// This route is intentionally a stub. It validates the request shape and
-// returns a clearly-labeled placeholder answer so the frontend has a real
-// endpoint to integrate against. No AI provider is called here, and no
-// provider API key is read or exposed. Do not add a client-side call to
-// any AI provider's API from this project — everything must go through
-// this server route.
+import { retrieveKnowledge } from "@/lib/knowledge/retrieve";
+import { answerWithConfiguredLlm, buildFallbackAnswer, hasSufficientEvidence } from "@/lib/knowledge/answer";
 
 export const runtime = "nodejs";
+const MAX_QUESTION_LENGTH = 500;
 
 export async function POST(req: NextRequest) {
   let body: AskAdamRequest;
@@ -39,13 +31,23 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // TODO(ask-adam-backend): replace this stub with a call into the real
-  // model/knowledge-base pipeline. Keep all provider credentials in
-  // server-only environment variables (see .env.example) and never return
-  // them, log them, or forward them to the client.
+  if (question.length > MAX_QUESTION_LENGTH) {
+    return NextResponse.json<AskAdamErrorResponse>({ error: `Question must be ${MAX_QUESTION_LENGTH} characters or fewer.` }, { status: 400 });
+  }
+
+  const validHistory = !body.history || (Array.isArray(body.history) && body.history.length <= 20 && body.history.every((message) => message && (message.role === "user" || message.role === "assistant") && typeof message.content === "string"));
+  if (!validHistory) {
+    return NextResponse.json<AskAdamErrorResponse>({ error: "Conversation history is invalid or too long." }, { status: 400 });
+  }
+
+  const records = retrieveKnowledge(question, { limit: 6 });
+  let answer: string | null = null;
+  if (hasSufficientEvidence(records)) {
+    try { answer = await answerWithConfiguredLlm(question, records, body.history); } catch { /* Preserve availability without leaking provider details. */ }
+  }
   const response: AskAdamResponse = {
-    answer:
-      "Ask Adam isn't connected to a live knowledge base yet — this endpoint is a working stub. Once the Bedrock-backed pipeline is wired up, this will answer with real detail about Adam's background.",
+    answer: answer ?? buildFallbackAnswer(question, records),
+    sources: records.slice(0,4).map(({id,title,category}) => ({id,title,category})),
   };
 
   return NextResponse.json(response, { status: 200 });
