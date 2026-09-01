@@ -8,7 +8,7 @@ export interface ProjectCardProps {
   visualSrc?: string;
   href?: string;
   isPlaceholder?: boolean;
-  visual?: "ssot" | "check2go" | "knowledge" | "transformation";
+  visual?: "ssot" | "check2go" | "knowledge" | "transformation" | "ai-support";
 }
 
 function SsotVisual() {
@@ -102,6 +102,28 @@ function TransformationVisual() {
   );
 }
 
+function AiSupportVisual() {
+  const sources = ["Knowledge", "CRM", "CPQ", "Support"];
+
+  return (
+    <div className="relative aspect-[4/3] overflow-hidden border-b border-border bg-[#071416] p-5">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(34,211,238,0.18),transparent_58%)]" />
+      <div className="relative grid h-full grid-cols-2 gap-3">
+        {sources.map((source, index) => (
+          <div key={source} className="flex flex-col items-center justify-center rounded-md border border-cyan-200/10 bg-white/[0.025] font-mono uppercase text-cyan-100/45">
+            <span className="text-[9px] tracking-[0.1em]">{source}</span>
+            <span className="mt-1 text-[7px] text-cyan-200/30">{[38, 27, 21, 14][index]}%</span>
+          </div>
+        ))}
+      </div>
+      <div className="absolute left-1/2 top-1/2 flex h-20 w-20 -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-full border border-cyan-300/40 bg-[#0c2226] shadow-[0_0_40px_rgba(34,211,238,0.18)]">
+        <span className="font-display text-sm font-medium text-white">AI</span>
+        <span className="font-mono text-[7px] uppercase tracking-wider text-cyan-100/50">Grounded</span>
+      </div>
+    </div>
+  );
+}
+
 export function ProjectCard({
   title,
   category,
@@ -122,6 +144,8 @@ export function ProjectCard({
         <KnowledgeVisual />
       ) : visual === "transformation" ? (
         <TransformationVisual />
+      ) : visual === "ai-support" ? (
+        <AiSupportVisual />
       ) : visualSrc ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={visualSrc} alt="" className="aspect-[4/3] w-full border-b border-border object-cover" />

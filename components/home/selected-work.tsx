@@ -1,10 +1,5 @@
 import { ProjectCard } from "@/components/work/project-card";
 
-const PLACEHOLDER_PROJECTS = Array.from({ length: 1 }, (_, i) => ({
-  title: `Project 0${i + 5}`,
-  isPlaceholder: true as const,
-}));
-
 export function SelectedWork() {
   return (
     <section
@@ -53,13 +48,14 @@ export function SelectedWork() {
           href="/work/business-systems-transformation"
           visual="transformation"
         />
-        {PLACEHOLDER_PROJECTS.map((project) => (
-          <ProjectCard
-            key={project.title}
-            title={project.title}
-            isPlaceholder={project.isPlaceholder}
-          />
-        ))}
+        <ProjectCard
+          title="AI Assistant for Technical & VIP Support"
+          category="AI · CRM · CPQ · Support"
+          summary="A grounded, multi-source assistant connecting verified company knowledge with product data, compatibility logic, and ordering workflows."
+          role="Product Lead · AI Product Owner"
+          href="/work/ai-support-assistant"
+          visual="ai-support"
+        />
       </div>
     </section>
   );

@@ -57,6 +57,14 @@ export default function WorkPage() {
             href="/work/business-systems-transformation"
             visual="transformation"
           />
+          <ProjectCard
+            title="AI Assistant for Technical & VIP Support"
+            category="AI · CRM · CPQ · Support"
+            summary="A grounded, multi-source assistant connecting verified company knowledge with product data, compatibility logic, and ordering workflows."
+            role="Product Lead · AI Product Owner"
+            href="/work/ai-support-assistant"
+            visual="ai-support"
+          />
         </div>
       </section>
     </main>
