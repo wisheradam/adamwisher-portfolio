@@ -49,6 +49,14 @@ export default function WorkPage() {
             href="/work/innova-knowledge-base"
             visual="knowledge"
           />
+          <ProjectCard
+            title="Business Systems Transformation"
+            category="Enterprise · CPQ · Architecture"
+            summary="A research-led roadmap from Zoho to Salesforce, NetSuite, and Slack, with CPQ and connected operations at the center."
+            role="Product Lead"
+            href="/work/business-systems-transformation"
+            visual="transformation"
+          />
         </div>
       </section>
     </main>
