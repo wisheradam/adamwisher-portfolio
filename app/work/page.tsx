@@ -41,6 +41,14 @@ export default function WorkPage() {
             href="/work/check2go"
             visual="check2go"
           />
+          <ProjectCard
+            title="INNOVA Knowledge & Training Ecosystem"
+            category="Knowledge · Enablement · Governance"
+            summary="A governed company knowledge system for support, onboarding, partner training, certification, and document standards."
+            role="Product Lead"
+            href="/work/innova-knowledge-base"
+            visual="knowledge"
+          />
         </div>
       </section>
     </main>
