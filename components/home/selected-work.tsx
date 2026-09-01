@@ -1,7 +1,7 @@
 import { ProjectCard } from "@/components/work/project-card";
 
-const PLACEHOLDER_PROJECTS = Array.from({ length: 2 }, (_, i) => ({
-  title: `Project 0${i + 4}`,
+const PLACEHOLDER_PROJECTS = Array.from({ length: 1 }, (_, i) => ({
+  title: `Project 0${i + 5}`,
   isPlaceholder: true as const,
 }));
 
@@ -44,6 +44,14 @@ export function SelectedWork() {
           role="Product Lead"
           href="/work/innova-knowledge-base"
           visual="knowledge"
+        />
+        <ProjectCard
+          title="Business Systems Transformation"
+          category="Enterprise · CPQ · Architecture"
+          summary="A research-led roadmap from Zoho to Salesforce, NetSuite, and Slack, with CPQ and connected operations at the center."
+          role="Product Lead"
+          href="/work/business-systems-transformation"
+          visual="transformation"
         />
         {PLACEHOLDER_PROJECTS.map((project) => (
           <ProjectCard
