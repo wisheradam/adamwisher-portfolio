@@ -8,7 +8,7 @@ export interface ProjectCardProps {
   visualSrc?: string;
   href?: string;
   isPlaceholder?: boolean;
-  visual?: "ssot" | "check2go";
+  visual?: "ssot" | "check2go" | "knowledge";
 }
 
 function SsotVisual() {
@@ -63,6 +63,27 @@ function Check2GoVisual() {
   );
 }
 
+function KnowledgeVisual() {
+  const domains = ["Support", "Onboarding", "Training", "Standards"];
+
+  return (
+    <div className="relative aspect-[4/3] overflow-hidden border-b border-border bg-[#14120c] p-5">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(250,204,21,0.15),transparent_55%)]" />
+      <div className="relative grid h-full grid-cols-2 gap-3">
+        {domains.map((domain) => (
+          <div key={domain} className="flex items-center justify-center rounded-md border border-amber-200/10 bg-white/[0.025] font-mono text-[9px] uppercase tracking-[0.12em] text-amber-100/45">
+            {domain}
+          </div>
+        ))}
+      </div>
+      <div className="absolute left-1/2 top-1/2 flex h-20 w-20 -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-full border border-amber-300/40 bg-[#211d10] shadow-[0_0_40px_rgba(250,204,21,0.14)]">
+        <span className="font-display text-xs font-medium text-white">ONE</span>
+        <span className="font-mono text-[7px] uppercase tracking-wider text-amber-100/50">Knowledge</span>
+      </div>
+    </div>
+  );
+}
+
 export function ProjectCard({
   title,
   category,
@@ -79,6 +100,8 @@ export function ProjectCard({
         <SsotVisual />
       ) : visual === "check2go" ? (
         <Check2GoVisual />
+      ) : visual === "knowledge" ? (
+        <KnowledgeVisual />
       ) : visualSrc ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
