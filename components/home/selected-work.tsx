@@ -56,6 +56,12 @@ export function SelectedWork() {
           href="/work/ai-support-assistant"
           visual="ai-support"
         />
+        <ProjectCard
+          title="Project 06"
+          category="Case study · Coming soon"
+          summary="A new product case study is in progress. Details will be added soon."
+          role="Coming soon"
+        />
       </div>
     </section>
   );
