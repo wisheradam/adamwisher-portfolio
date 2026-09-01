@@ -1,7 +1,7 @@
 import { ProjectCard } from "@/components/work/project-card";
 
-const PLACEHOLDER_PROJECTS = Array.from({ length: 3 }, (_, i) => ({
-  title: `Project 0${i + 3}`,
+const PLACEHOLDER_PROJECTS = Array.from({ length: 2 }, (_, i) => ({
+  title: `Project 0${i + 4}`,
   isPlaceholder: true as const,
 }));
 
@@ -36,6 +36,14 @@ export function SelectedWork() {
           role="Product Lead · Project Owner"
           href="/work/check2go"
           visual="check2go"
+        />
+        <ProjectCard
+          title="INNOVA Knowledge & Training Ecosystem"
+          category="Knowledge · Enablement · Governance"
+          summary="A governed company knowledge system for support, onboarding, partner training, certification, and document standards."
+          role="Product Lead"
+          href="/work/innova-knowledge-base"
+          visual="knowledge"
         />
         {PLACEHOLDER_PROJECTS.map((project) => (
           <ProjectCard
