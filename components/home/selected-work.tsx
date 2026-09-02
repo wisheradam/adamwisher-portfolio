@@ -57,10 +57,12 @@ export function SelectedWork() {
           visual="ai-support"
         />
         <ProjectCard
-          title="Project 06"
-          category="Case study · Coming soon"
-          summary="A new product case study is in progress. Details will be added soon."
-          role="Coming soon"
+          title="Healthcare Marketplace: Prescription Medication Sales & Delivery"
+          category="Healthcare · Marketplace · NDA"
+          summary="A full-cycle product case for prescription search, verification, checkout, secure delivery, repeat medication management, and scalable automation."
+          role="Product Manager · End-to-end"
+          href="/work/prescription-medication-marketplace"
+          visualSrc="/project-06-rx.svg"
         />
       </div>
     </section>
