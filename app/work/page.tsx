@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { ProjectCard } from "@/components/work/project-card";
 
+export const revalidate = 300;
+
 export default function WorkPage() {
   return (
     <main className="mx-auto min-h-screen max-w-7xl px-6 py-8 lg:px-12 lg:py-12">
