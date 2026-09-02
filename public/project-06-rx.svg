@@ -1,0 +1,57 @@
+<svg width="1200" height="900" viewBox="0 0 1200 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="900" fill="#081413"/>
+  <circle cx="890" cy="190" r="330" fill="url(#g1)" opacity="0.7"/>
+  <circle cx="275" cy="680" r="300" fill="url(#g2)" opacity="0.55"/>
+  <rect x="88" y="88" width="1024" height="724" rx="28" stroke="#74F0CE" stroke-opacity="0.12"/>
+  <text x="126" y="150" fill="#B7E8DA" fill-opacity="0.58" font-family="monospace" font-size="24" letter-spacing="5">HEALTHCARE · MARKETPLACE · NDA</text>
+
+  <g opacity="0.88">
+    <rect x="128" y="242" width="292" height="166" rx="20" fill="#0D1F1C" stroke="#74F0CE" stroke-opacity="0.16"/>
+    <text x="160" y="292" fill="#B7E8DA" fill-opacity="0.42" font-family="monospace" font-size="20" letter-spacing="3">01 · SEARCH</text>
+    <rect x="160" y="324" width="180" height="18" rx="9" fill="#74F0CE" fill-opacity="0.18"/>
+    <rect x="160" y="356" width="118" height="12" rx="6" fill="#74F0CE" fill-opacity="0.08"/>
+  </g>
+
+  <g opacity="0.88">
+    <rect x="780" y="242" width="292" height="166" rx="20" fill="#0D1F1C" stroke="#74F0CE" stroke-opacity="0.16"/>
+    <text x="812" y="292" fill="#B7E8DA" fill-opacity="0.42" font-family="monospace" font-size="20" letter-spacing="3">02 · VERIFY</text>
+    <rect x="812" y="326" width="196" height="50" rx="12" fill="#74F0CE" fill-opacity="0.08"/>
+    <path d="M842 351L855 364L880 338" stroke="#74F0CE" stroke-opacity="0.55" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <g opacity="0.88">
+    <rect x="128" y="492" width="292" height="166" rx="20" fill="#0D1F1C" stroke="#74F0CE" stroke-opacity="0.16"/>
+    <text x="160" y="542" fill="#B7E8DA" fill-opacity="0.42" font-family="monospace" font-size="20" letter-spacing="3">03 · DELIVER</text>
+    <path d="M165 590H275L301 620H354" stroke="#74F0CE" stroke-opacity="0.28" stroke-width="8" stroke-linecap="round"/>
+    <circle cx="210" cy="631" r="15" fill="#74F0CE" fill-opacity="0.45"/>
+    <circle cx="330" cy="631" r="15" fill="#74F0CE" fill-opacity="0.45"/>
+  </g>
+
+  <g opacity="0.88">
+    <rect x="780" y="492" width="292" height="166" rx="20" fill="#0D1F1C" stroke="#74F0CE" stroke-opacity="0.16"/>
+    <text x="812" y="542" fill="#B7E8DA" fill-opacity="0.42" font-family="monospace" font-size="20" letter-spacing="3">04 · REPEAT</text>
+    <path d="M846 607C846 566 879 533 920 533C955 533 984 557 992 589" stroke="#74F0CE" stroke-opacity="0.38" stroke-width="8" stroke-linecap="round"/>
+    <path d="M993 554V591H956" stroke="#74F0CE" stroke-opacity="0.52" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <circle cx="600" cy="450" r="144" fill="#102A25" stroke="#74F0CE" stroke-opacity="0.4" stroke-width="2"/>
+  <circle cx="600" cy="450" r="112" fill="#0A1A17" stroke="#74F0CE" stroke-opacity="0.16"/>
+  <text x="600" y="438" text-anchor="middle" fill="#F4FFFB" font-family="Arial, sans-serif" font-size="96" font-weight="700">Rx</text>
+  <text x="600" y="493" text-anchor="middle" fill="#74F0CE" fill-opacity="0.62" font-family="monospace" font-size="18" letter-spacing="5">SAFE DIGITAL JOURNEY</text>
+
+  <path d="M420 325C494 325 514 365 527 390" stroke="#74F0CE" stroke-opacity="0.16" stroke-width="3" stroke-dasharray="9 11"/>
+  <path d="M780 325C706 325 686 365 673 390" stroke="#74F0CE" stroke-opacity="0.16" stroke-width="3" stroke-dasharray="9 11"/>
+  <path d="M420 575C494 575 514 535 527 510" stroke="#74F0CE" stroke-opacity="0.16" stroke-width="3" stroke-dasharray="9 11"/>
+  <path d="M780 575C706 575 686 535 673 510" stroke="#74F0CE" stroke-opacity="0.16" stroke-width="3" stroke-dasharray="9 11"/>
+
+  <defs>
+    <radialGradient id="g1" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(890 190) rotate(90) scale(330)">
+      <stop stop-color="#2BD9AA" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#2BD9AA" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="g2" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(275 680) rotate(90) scale(300)">
+      <stop stop-color="#5DD6E7" stop-opacity="0.12"/>
+      <stop offset="1" stop-color="#5DD6E7" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+</svg>
