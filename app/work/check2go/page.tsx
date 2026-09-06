@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Check2GoVisual } from "@/components/work/check2go-visual";
 
 export const metadata: Metadata = {
   title: "Project №2 · Check2Go — Adam Wisher",
@@ -51,6 +52,10 @@ export default function Check2GoPage() {
                 <span>Stage<br /><strong className="mt-1 block font-normal text-foreground">Idea → Alpha</strong></span>
               </div>
             </div>
+          </section>
+
+          <section className="border-b border-border py-10 sm:py-14 lg:py-16">
+            <Check2GoVisual className="rounded-lg border border-border sm:aspect-[16/7]" />
           </section>
 
           <section className="grid gap-10 border-b border-border py-14 lg:grid-cols-[0.75fr_1.25fr] lg:py-20">
