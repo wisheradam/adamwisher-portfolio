@@ -1,13 +1,11 @@
-import { Hero } from "@/components/home/hero";
-import { SelectedWork } from "@/components/home/selected-work";
+import KineticGrid from "@/components/ui/kinetic-grid";
 
 export const revalidate = 300;
 
 export default function HomePage() {
   return (
     <main>
-      <Hero />
-      <SelectedWork />
+      <KineticGrid />
     </main>
   );
 }
