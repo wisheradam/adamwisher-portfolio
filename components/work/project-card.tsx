@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Check2GoVisual } from "@/components/work/check2go-visual";
 
 export interface ProjectCardProps {
   title: string;
@@ -26,35 +27,6 @@ function SsotVisual() {
       </div>
       <div className="absolute left-1/2 top-1/2 flex h-20 w-20 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-blue-400/50 bg-[#101a2b] shadow-[0_0_40px_rgba(59,130,246,0.2)]">
         <span className="font-display text-sm font-medium tracking-tight text-white">SSOT</span>
-      </div>
-    </div>
-  );
-}
-
-function Check2GoVisual() {
-  const stages = ["Idea", "Validate", "Build", "Alpha"];
-
-  return (
-    <div className="relative aspect-[4/3] overflow-hidden border-b border-border bg-[#071512] p-5">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_72%_22%,rgba(45,212,191,0.18),transparent_48%)]" />
-      <div className="relative flex h-full flex-col justify-between">
-        <div className="flex items-start justify-between">
-          <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-emerald-200/55">TravelTech · USA</span>
-          <span className="rounded-full border border-emerald-300/20 px-2 py-1 font-mono text-[9px] uppercase tracking-wider text-emerald-200/50">0→1</span>
-        </div>
-        <div>
-          <div className="mb-4 flex items-center gap-1.5">
-            {stages.map((stage, index) => (
-              <div key={stage} className="flex min-w-0 flex-1 items-center gap-1.5">
-                <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-300/70" />
-                {index < stages.length - 1 && <span className="h-px flex-1 bg-emerald-300/20" />}
-              </div>
-            ))}
-          </div>
-          <div className="grid grid-cols-4 gap-2 font-mono text-[8px] text-emerald-100/40">
-            {stages.map((stage) => <span key={stage}>{stage}</span>)}
-          </div>
-        </div>
       </div>
     </div>
   );
