@@ -10,6 +10,7 @@ const primaryLinks = [
   { label: "Learning", href: "/learning" },
   { label: "About", href: "/about" },
   { label: "Contact", href: "/contact" },
+  { label: "Mail", href: "/mail" },
 ];
 
 export function HeroNavigation() {
