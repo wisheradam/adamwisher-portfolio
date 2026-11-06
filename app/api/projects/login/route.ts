@@ -16,7 +16,8 @@ function loginUrl(request: Request, error: string) {
 }
 
 function redirectToLogin(request: Request, error: string) {
-  const response = NextResponse.redirect(loginUrl(request, error), 303);
+  const target = loginUrl(request, error);
+  const response = new NextResponse(null, { status: 303, headers: { Location: target.pathname + target.search } });
   response.headers.set("Cache-Control", "no-store, private");
   return response;
 }
@@ -38,7 +39,7 @@ export async function POST(request: Request) {
     return redirectToLogin(request, "invalid");
   }
 
-  const response = NextResponse.redirect(new URL("/projects", request.url), 303);
+  const response = new NextResponse(null, { status: 303, headers: { Location: "/projects" } });
   response.cookies.set({
     name: PROJECTS_SESSION_COOKIE,
     value: createProjectsSession(),

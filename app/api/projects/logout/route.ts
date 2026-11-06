@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { PROJECTS_SESSION_COOKIE } from "@/lib/projects-auth";
 
 export async function POST(request: Request) {
-  const response = NextResponse.redirect(new URL("/projects/login", request.url), 303);
+  const response = new NextResponse(null, { status: 303, headers: { Location: "/projects/login" } });
   response.cookies.set({
     name: PROJECTS_SESSION_COOKIE,
     value: "",
