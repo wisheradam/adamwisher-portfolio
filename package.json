@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "hash:projects-password": "node scripts/hash-projects-password.mjs",
     "validate:ask-adam": "node scripts/validate-ask-adam.mjs"
   },
   "dependencies": {
