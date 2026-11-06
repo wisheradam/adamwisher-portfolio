@@ -7,19 +7,17 @@ export function ThemeToggle() {
   const [theme, setTheme] = useState("dark");
 
   useEffect(() => {
-    const media = window.matchMedia("(prefers-color-scheme: dark)");
     function sync() {
       let saved: string | null = null;
-      try { saved = localStorage.getItem("adam-theme"); } catch { /* Use system preference. */ }
-      const next = saved === "light" || saved === "dark" ? saved : media.matches ? "dark" : "light";
+      try { saved = localStorage.getItem("adam-theme"); } catch { /* Default to dark. */ }
+      const next = saved === "light" ? "light" : "dark";
       document.documentElement.classList.toggle("dark", next === "dark");
       document.documentElement.classList.toggle("light", next === "light");
       setTheme(next);
     }
     sync();
     window.addEventListener("storage", sync);
-    media.addEventListener("change", sync);
-    return () => { window.removeEventListener("storage", sync); media.removeEventListener("change", sync); };
+    return () => { window.removeEventListener("storage", sync); };
   }, []);
 
   function toggle() {
