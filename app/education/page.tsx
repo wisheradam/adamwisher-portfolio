@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { education } from "@/data/knowledge/education";
+import { education, yandexProgram } from "@/data/knowledge/education";
 import { certifications } from "@/data/knowledge/certifications";
 import type { KnowledgeRecord } from "@/data/knowledge/types";
 
@@ -58,6 +58,26 @@ export default function EducationPage() {
                 <h3 className="mt-4 font-display text-2xl font-medium tracking-tight">{record.title}</h3>
                 <p className="mt-4 font-mono text-xs text-muted-foreground">{date(record.period?.from)} — {date(record.period?.to)}</p>
                 <p className="mt-5 text-sm leading-relaxed text-muted-foreground">{record.summary}</p>
+                {record.id === "edu-yandex-product" ? (
+                  <div className="mt-6 border-t border-border pt-6">
+                    <dl className="space-y-4 text-sm">
+                      {[["Duration", yandexProgram.duration], ["Education Level", yandexProgram.educationLevel], ["Entry Requirement", yandexProgram.entryRequirement], ["Specialization", yandexProgram.specialization]].map(([label, value]) => (
+                        <div key={label}><dt className="font-medium">{label}</dt><dd className="mt-1 leading-relaxed text-muted-foreground">{value}</dd></div>
+                      ))}
+                    </dl>
+                    <p className="mt-3 text-xs leading-relaxed text-muted-foreground">Curriculum level describes the scope of study; this is a professional retraining qualification, not an academic degree.</p>
+                    <details className="mt-6 group">
+                      <summary className="focus-ring cursor-pointer rounded-sm text-sm font-medium text-accent">Curriculum & Practical Experience</summary>
+                      <p className="mt-5 text-sm leading-relaxed text-muted-foreground">{yandexProgram.overview}</p>
+                      <h4 className="mt-5 text-sm font-medium">Key Areas of Study</h4>
+                      <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-relaxed text-muted-foreground">
+                        {yandexProgram.areas.map((area) => <li key={area}>{area}</li>)}
+                      </ul>
+                      <p className="mt-5 text-sm leading-relaxed text-muted-foreground">{yandexProgram.practice}</p>
+                      <p className="mt-4 text-sm leading-relaxed text-muted-foreground">{yandexProgram.outcome}</p>
+                    </details>
+                  </div>
+                ) : null}
                 <ul className="mt-6 flex flex-wrap gap-2" aria-label="Fields of study">
                   {record.skills?.map((skill) => <li key={skill} className="rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground">{skill}</li>)}
                 </ul>
