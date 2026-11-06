@@ -7,7 +7,6 @@ const LINKEDIN_URL = "#"; // TODO: real LinkedIn URL
 const primaryLinks = [
   { label: "Projects", href: "/projects" },
   { label: "Work", href: "/work" },
-  { label: "Visuals", href: "/visuals" },
   { label: "Education", href: "/education" },
   { label: "About", href: "/about" },
   { label: "Contact", href: "/contact" },
