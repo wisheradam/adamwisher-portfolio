@@ -11,6 +11,8 @@
     "validate:ask-adam": "node scripts/validate-ask-adam.mjs"
   },
   "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.1163.0",
+    "@aws-sdk/client-sesv2": "^3.1163.0",
     "@splinetool/react-spline": "^3.1.1",
     "@splinetool/runtime": "^1.12.98",
     "clsx": "^2.1.1",
