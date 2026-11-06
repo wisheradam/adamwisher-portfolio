@@ -53,20 +53,20 @@ export default function EducationPage() {
           <h2 id="formal-heading" className="font-display text-2xl font-medium tracking-tight">Education & Professional Retraining</h2>
           <div className="mt-6 grid gap-4 md:grid-cols-2">
             {studies.map((record) => (
-              <article key={record.id} className="rounded-lg border border-border bg-surface p-6 sm:p-8">
+              <article key={record.id} className="rounded-lg border border-border bg-surface p-6 sm:p-8 md:row-span-6 md:grid md:grid-rows-subgrid">
                 <p className="font-mono text-xs uppercase tracking-wide text-accent">{record.organization}</p>
                 <h3 className="mt-4 font-display text-2xl font-medium tracking-tight">{record.title}</h3>
                 <p className="mt-4 font-mono text-xs text-muted-foreground">{date(record.period?.from)} — {date(record.period?.to)}</p>
                 <p className="mt-5 text-sm leading-relaxed text-muted-foreground">{record.summary}</p>
                 {record.id === "edu-yandex-product" ? (
-                  <div className="mt-6 border-t border-border pt-6">
+                  <div className="mt-6 flex flex-col border-t border-border pt-6">
                     <dl className="space-y-4 text-sm">
                       {[["Duration", yandexProgram.duration], ["Education Level", yandexProgram.educationLevel], ["Entry Requirement", yandexProgram.entryRequirement], ["Specialization", yandexProgram.specialization]].map(([label, value]) => (
                         <div key={label}><dt className="font-medium">{label}</dt><dd className="mt-1 leading-relaxed text-muted-foreground">{value}</dd></div>
                       ))}
                     </dl>
                     <p className="mt-3 text-xs leading-relaxed text-muted-foreground">Curriculum level describes the scope of study; this is a professional retraining qualification, not an academic degree.</p>
-                    <details className="mt-6 group">
+                    <details className="mt-auto pt-6 group">
                       <summary className="focus-ring cursor-pointer rounded-sm text-sm font-medium text-accent">Curriculum & Practical Experience</summary>
                       <p className="mt-5 text-sm leading-relaxed text-muted-foreground">{yandexProgram.overview}</p>
                       <h4 className="mt-5 text-sm font-medium">Key Areas of Study</h4>
@@ -79,9 +79,13 @@ export default function EducationPage() {
                   </div>
                 ) : null}
                 {record.id === "edu-minsk-economics" ? (
-                  <div className="mt-6 border-t border-border pt-6">
-                    <dl className="text-sm"><dt className="font-medium">Qualification</dt><dd className="mt-1 text-muted-foreground">{economicsProgram.qualification}</dd></dl>
-                    <details className="mt-6">
+                  <div className="mt-6 flex flex-col border-t border-border pt-6">
+                    <dl className="space-y-4 text-sm">
+                      {[["Study Period", `${date(record.period?.from)} — ${date(record.period?.to)}`], ["Education Level", "Higher Education"], ["Qualification", economicsProgram.qualification], ["Specialization", "Economics and Enterprise Management"]].map(([label, value]) => (
+                        <div key={label}><dt className="font-medium">{label}</dt><dd className="mt-1 leading-relaxed text-muted-foreground">{value}</dd></div>
+                      ))}
+                    </dl>
+                    <details className="mt-auto pt-6">
                       <summary className="focus-ring cursor-pointer rounded-sm text-sm font-medium text-accent">Curriculum & Professional Foundation</summary>
                       <p className="mt-5 text-sm leading-relaxed text-muted-foreground">{economicsProgram.overview}</p>
                       <h4 className="mt-5 text-sm font-medium">Key Areas of Study</h4>
