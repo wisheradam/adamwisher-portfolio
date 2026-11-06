@@ -1,7 +1,6 @@
 import Link from "next/link";
 
-// TODO: replace with real GitHub/LinkedIn URLs before launch.
-const GITHUB_URL = "#"; // TODO: real GitHub URL
+const GITHUB_URL = "https://github.com/wisheradam";
 const LINKEDIN_URL = "#"; // TODO: real LinkedIn URL
 
 const primaryLinks = [
