@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 const GITHUB_URL = "https://github.com/wisheradam";
-const LINKEDIN_URL = "#"; // TODO: real LinkedIn URL
+const LINKEDIN_URL = "https://www.linkedin.com/in/adam-wisher/";
 
 const primaryLinks = [
   { label: "Projects", href: "/projects" },
