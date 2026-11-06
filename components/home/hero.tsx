@@ -1,5 +1,4 @@
 import { HeroNavigation } from "@/components/home/hero-navigation";
-import { HeroRobot } from "@/components/home/hero-robot";
 import { AskAdam } from "@/components/home/ask-adam";
 
 const EXPERTISE = [
@@ -17,8 +16,8 @@ export function Hero() {
         <HeroNavigation />
       </div>
 
-      <div className="grid grid-cols-1 gap-10 py-10 lg:grid-cols-[45%_55%] lg:items-center lg:gap-12 lg:pb-14 lg:pt-16">
-        <div className="flex flex-col gap-7">
+      <div className="grid grid-cols-1 gap-10 py-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-center lg:gap-12 lg:pb-14 lg:pt-16">
+        <div className="flex min-w-0 flex-col gap-7">
           <div className="order-1 flex flex-col gap-4">
             <div className="flex flex-col gap-1 font-mono text-xs uppercase tracking-wide text-muted-foreground">
               <span>Adam Wisher</span>
@@ -47,17 +46,14 @@ export function Hero() {
             ))}
           </ul>
 
-          <div className="order-4">
-            <AskAdam />
-          </div>
-
-          <div className="order-5 lg:hidden">
-            <HeroNavigation />
-          </div>
         </div>
 
-        <div className="order-6 lg:order-none">
-          <HeroRobot />
+        <div className="min-w-0">
+          <AskAdam />
+        </div>
+
+        <div className="lg:hidden">
+          <HeroNavigation />
         </div>
       </div>
     </header>
