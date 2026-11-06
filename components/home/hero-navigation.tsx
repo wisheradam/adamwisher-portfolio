@@ -8,7 +8,7 @@ const primaryLinks = [
   { label: "Projects", href: "/projects" },
   { label: "Work", href: "/work" },
   { label: "Visuals", href: "/visuals" },
-  { label: "Learning", href: "/learning" },
+  { label: "Education", href: "/education" },
   { label: "About", href: "/about" },
   { label: "Contact", href: "/contact" },
   { label: "Mail", href: "/mail" },
