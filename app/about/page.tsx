@@ -1,14 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowUpRight } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "About — Adam Wisher",
   description: "Adam Wisher's background in technology, mathematics, business leadership, product management, and digital transformation.",
 };
-
-const strengths = ["Technical & Analytical Thinking", "Product Leadership", "Systems Integration", "Business Strategy", "Team Management", "Negotiation"];
 
 export default function AboutPage() {
   return (
@@ -41,7 +38,7 @@ export default function AboutPage() {
           </div>
         </div>
 
-        <div className="mt-14 grid items-start gap-12 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,0.8fr)] lg:gap-16">
+        <div className="mt-14 max-w-3xl">
           <div className="space-y-10">
             <section aria-labelledby="technical-heading">
               <h2 id="technical-heading" className="font-display text-2xl font-medium tracking-tight">A technical foundation, from the start.</h2>
@@ -66,16 +63,6 @@ export default function AboutPage() {
             <p className="border-l-2 border-accent pl-6 font-display text-xl leading-relaxed sm:text-2xl">I’m drawn to challenges that call for understanding a complex system, testing hypotheses with data, bringing people together, and organizing the work to turn an idea into a useful product.</p>
           </div>
 
-          <aside aria-label="Focus and further reading" className="rounded-lg border border-border bg-surface p-6 sm:p-8">
-            <p className="font-mono text-xs uppercase tracking-wide text-muted-foreground">What I bring</p>
-            <ul className="mt-5 space-y-4">
-              {strengths.map((strength) => <li key={strength} className="border-b border-border pb-4 text-sm last:border-0 last:pb-0">{strength}</li>)}
-            </ul>
-            <div className="mt-8 space-y-4 border-t border-border pt-6">
-              <Link href="/education" className="focus-ring flex items-center justify-between gap-4 rounded-sm text-sm text-accent">Education & Training<ArrowUpRight size={16} aria-hidden="true" /></Link>
-              <Link href="/contact" className="focus-ring flex items-center justify-between gap-4 rounded-sm text-sm text-accent">Get in touch<ArrowUpRight size={16} aria-hidden="true" /></Link>
-            </div>
-          </aside>
         </div>
       </section>
     </main>
