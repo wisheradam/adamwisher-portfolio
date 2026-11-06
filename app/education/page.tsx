@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { education, yandexProgram } from "@/data/knowledge/education";
+import { education, yandexProgram, economicsProgram } from "@/data/knowledge/education";
 import { certifications } from "@/data/knowledge/certifications";
 import type { KnowledgeRecord } from "@/data/knowledge/types";
 
@@ -75,6 +75,20 @@ export default function EducationPage() {
                       </ul>
                       <p className="mt-5 text-sm leading-relaxed text-muted-foreground">{yandexProgram.practice}</p>
                       <p className="mt-4 text-sm leading-relaxed text-muted-foreground">{yandexProgram.outcome}</p>
+                    </details>
+                  </div>
+                ) : null}
+                {record.id === "edu-minsk-economics" ? (
+                  <div className="mt-6 border-t border-border pt-6">
+                    <dl className="text-sm"><dt className="font-medium">Qualification</dt><dd className="mt-1 text-muted-foreground">{economicsProgram.qualification}</dd></dl>
+                    <details className="mt-6">
+                      <summary className="focus-ring cursor-pointer rounded-sm text-sm font-medium text-accent">Curriculum & Professional Foundation</summary>
+                      <p className="mt-5 text-sm leading-relaxed text-muted-foreground">{economicsProgram.overview}</p>
+                      <h4 className="mt-5 text-sm font-medium">Key Areas of Study</h4>
+                      <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-relaxed text-muted-foreground">
+                        {economicsProgram.areas.map((area) => <li key={area}>{area}</li>)}
+                      </ul>
+                      <p className="mt-5 text-sm leading-relaxed text-muted-foreground">{economicsProgram.outcome}</p>
                     </details>
                   </div>
                 ) : null}
