@@ -77,7 +77,7 @@ export function AskAdam() {
   return (
     <section
       aria-labelledby="ask-adam-heading"
-      className="rounded-lg border border-white/[0.14] bg-white/[0.045] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] sm:p-6"
+      className="rounded-lg border border-border bg-surface p-5 sm:p-6"
     >
       <div className="mb-4 flex items-center gap-2">
         <span

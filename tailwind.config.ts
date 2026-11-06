@@ -14,16 +14,16 @@ const config: Config = {
     },
     extend: {
       colors: {
-        background: "#050505",
-        foreground: "#F4F4F5",
+        background: "rgb(var(--color-background) / <alpha-value>)",
+        foreground: "rgb(var(--color-foreground) / <alpha-value>)",
         muted: {
-          DEFAULT: "rgba(255,255,255,0.035)",
-          foreground: "#A1A1AA",
+          DEFAULT: "rgb(var(--color-surface) / <alpha-value>)",
+          foreground: "rgb(var(--color-secondary) / <alpha-value>)",
         },
-        border: "rgba(255,255,255,0.10)",
-        surface: "rgba(255,255,255,0.035)",
+        border: "rgb(var(--color-border) / <alpha-value>)",
+        surface: "rgb(var(--color-surface) / <alpha-value>)",
         accent: {
-          DEFAULT: "#3B82F6",
+          DEFAULT: "rgb(var(--color-accent) / <alpha-value>)",
           foreground: "#F4F4F5",
         },
       },

@@ -1,4 +1,5 @@
 import { ProjectCard } from "@/components/work/project-card";
+import Link from "next/link";
 
 export function SelectedWork() {
   return (
@@ -25,30 +26,6 @@ export function SelectedWork() {
           visual="ssot"
         />
         <ProjectCard
-          title="Check2Go"
-          category="TravelTech · 0→1 · USA"
-          summary="A travel startup led end to end—from the first concept and team build to alpha, localization, and investor readiness."
-          role="Product Lead · Project Owner"
-          href="/work/check2go"
-          visual="check2go"
-        />
-        <ProjectCard
-          title="INNOVA Knowledge & Training Ecosystem"
-          category="Knowledge · Enablement · Governance"
-          summary="A governed company knowledge system for support, onboarding, partner training, certification, and document standards."
-          role="Product Lead"
-          href="/work/innova-knowledge-base"
-          visual="knowledge"
-        />
-        <ProjectCard
-          title="Business Systems Transformation"
-          category="Enterprise · CPQ · Architecture"
-          summary="A research-led roadmap from Zoho to Salesforce, NetSuite, and Slack, with CPQ and connected operations at the center."
-          role="Product Lead"
-          href="/work/business-systems-transformation"
-          visual="transformation"
-        />
-        <ProjectCard
           title="AI Assistant for Technical & VIP Support"
           category="AI · CRM · CPQ · Support"
           summary="A grounded, multi-source assistant connecting verified company knowledge with product data, compatibility logic, and ordering workflows."
@@ -64,6 +41,9 @@ export function SelectedWork() {
           href="/work/prescription-medication-marketplace"
           visualSrc="/project-06-rx.svg"
         />
+      </div>
+      <div className="mt-10 flex justify-center">
+        <Link href="/work" className="focus-ring inline-flex min-h-12 items-center gap-3 rounded-md border border-border bg-surface px-6 py-3 text-sm font-medium transition-colors hover:border-accent hover:text-accent">More work <span aria-hidden="true">→</span></Link>
       </div>
     </section>
   );

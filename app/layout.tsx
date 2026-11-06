@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Space_Grotesk, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -34,11 +35,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem('adam-theme');if(t!=='light'&&t!=='dark')t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';document.documentElement.classList.toggle('dark',t==='dark');document.documentElement.classList.toggle('light',t==='light')}catch(e){}})();` }} />
+      </head>
       <body
         className={`${inter.variable} ${spaceGrotesk.variable} ${plexMono.variable} bg-background text-foreground`}
       >
         {children}
+        <ThemeToggle />
       </body>
     </html>
   );

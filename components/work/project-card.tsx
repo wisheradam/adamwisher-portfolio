@@ -107,7 +107,7 @@ export function ProjectCard({
   visual,
 }: ProjectCardProps) {
   const content = (
-    <div className="group flex h-full flex-col justify-between overflow-hidden rounded-lg border border-border bg-surface transition-colors hover:border-white/20">
+    <div className="group flex h-full flex-col justify-between overflow-hidden rounded-lg border border-border bg-surface transition-colors hover:border-accent/50">
       {visual === "ssot" ? (
         <SsotVisual />
       ) : visual === "check2go" ? (

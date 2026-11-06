@@ -3,10 +3,37 @@
 @tailwind utilities;
 
 :root {
+  color-scheme: dark;
+  --color-background: 5 5 5;
+  --color-foreground: 244 244 245;
+  --color-secondary: 161 161 170;
+  --color-border: 42 42 45;
+  --color-surface: 14 14 16;
+  --color-accent: 59 130 246;
   --font-sans: "Inter", system-ui, sans-serif;
   --font-display: "Space Grotesk", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", monospace;
 }
+
+:root.light {
+  color-scheme: light;
+  --color-background: 250 250 250;
+  --color-foreground: 24 24 27;
+  --color-secondary: 82 82 91;
+  --color-border: 212 212 216;
+  --color-surface: 255 255 255;
+  --color-accent: 37 99 235;
+}
+
+.light .text-red-400 { color: #b91c1c; }
+.light .text-blue-300 { color: #1d4ed8; }
+.light .text-violet-300 { color: #6d28d9; }
+.light .text-cyan-300 { color: #0e7490; }
+.light .text-amber-300 { color: #92400e; }
+.light .text-fuchsia-300 { color: #a21caf; }
+.light .text-emerald-300 { color: #047857; }
+
+.light .about-portrait { mix-blend-mode: multiply; }
 
 * {
   border-color: theme("colors.border");
@@ -40,7 +67,7 @@ body {
   width: 28px;
   height: 28px;
   border-radius: 9999px;
-  border: 2px solid rgba(255, 255, 255, 0.12);
+  border: 2px solid rgb(var(--color-border));
   border-top-color: theme("colors.accent.DEFAULT");
   animation: spin 0.8s linear infinite;
 }

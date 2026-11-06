@@ -29,7 +29,7 @@ export default function AboutPage() {
               fill
               priority
               sizes="(min-width: 1024px) 420px, (min-width: 640px) 448px, calc(100vw - 48px)"
-              className="object-cover object-[30%_center]"
+              className="about-portrait object-cover object-[30%_center]"
               style={{
                 maskImage: "radial-gradient(ellipse 70% 65% at 50% 42%, black 55%, transparent 100%)",
                 WebkitMaskImage: "radial-gradient(ellipse 70% 65% at 50% 42%, black 55%, transparent 100%)",
