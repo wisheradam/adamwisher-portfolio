@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowUpRight } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -18,9 +19,23 @@ export default function AboutPage() {
       </header>
 
       <section className="py-16 lg:py-24" aria-labelledby="about-heading">
-        <p className="font-mono text-xs uppercase tracking-[0.18em] text-accent">About me</p>
-        <h1 id="about-heading" className="mt-4 max-w-4xl font-display text-4xl font-medium tracking-tight sm:text-6xl">Technical thinking.<br />Business perspective.<br />Product leadership.</h1>
-        <p className="mt-8 max-w-3xl text-lg leading-relaxed text-muted-foreground sm:text-xl">I’m Adam Wisher, a product leader who brings together technical thinking, a business perspective, and team management. At INNOVA, I lead Product Management and develop digital products, AI solutions, and integrations across enterprise systems.</p>
+        <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,0.85fr)] lg:gap-16">
+          <div>
+            <p className="font-mono text-xs uppercase tracking-[0.18em] text-accent">About me</p>
+            <h1 id="about-heading" className="mt-4 max-w-4xl font-display text-4xl font-medium tracking-tight sm:text-6xl">Technical thinking.<br />Business perspective.<br />Product leadership.</h1>
+            <p className="mt-8 max-w-3xl text-lg leading-relaxed text-muted-foreground sm:text-xl">I’m Adam Wisher, a product leader who brings together technical thinking, a business perspective, and team management. At INNOVA, I lead Product Management and develop digital products, AI solutions, and integrations across enterprise systems.</p>
+          </div>
+          <div className="relative aspect-[4/5] w-full max-w-md overflow-hidden rounded-lg border border-border bg-surface lg:justify-self-end">
+            <Image
+              src="/adam-wisher-portrait.webp"
+              alt="Black-and-white portrait of Adam Wisher"
+              fill
+              priority
+              sizes="(min-width: 1024px) 420px, (min-width: 640px) 448px, calc(100vw - 48px)"
+              className="object-cover object-[30%_center]"
+            />
+          </div>
+        </div>
 
         <div className="mt-14 grid items-start gap-12 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,0.8fr)] lg:gap-16">
           <div className="space-y-10">
