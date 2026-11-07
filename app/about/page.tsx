@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import Image from "next/image";
 
 export const metadata: Metadata = {
   title: "About — Adam Wisher",
@@ -16,25 +15,11 @@ export default function AboutPage() {
       </header>
 
       <section className="py-16 lg:py-24" aria-labelledby="about-heading">
-        <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,0.85fr)] lg:gap-16">
+        <div className="max-w-4xl">
           <div>
             <p className="font-mono text-xs uppercase tracking-[0.18em] text-accent">About me</p>
             <h1 id="about-heading" className="mt-4 max-w-4xl font-display text-4xl font-medium tracking-tight sm:text-6xl">Technical thinking.<br />Business perspective.<br />Product leadership.</h1>
             <p className="mt-8 max-w-3xl text-lg leading-relaxed text-muted-foreground sm:text-xl">I’m Adam Wisher, a product leader who brings together technical thinking, a business perspective, and team management. At INNOVA, I lead Product Management and develop digital products, AI solutions, and integrations across enterprise systems.</p>
-          </div>
-          <div className="relative aspect-[4/5] w-full max-w-md lg:justify-self-end">
-            <Image
-              src="/adam-wisher-portrait.webp"
-              alt="Black-and-white portrait of Adam Wisher"
-              fill
-              priority
-              sizes="(min-width: 1024px) 420px, (min-width: 640px) 448px, calc(100vw - 48px)"
-              className="about-portrait object-cover object-[30%_center]"
-              style={{
-                maskImage: "radial-gradient(ellipse 70% 65% at 50% 42%, black 55%, transparent 100%)",
-                WebkitMaskImage: "radial-gradient(ellipse 70% 65% at 50% 42%, black 55%, transparent 100%)",
-              }}
-            />
           </div>
         </div>
 
