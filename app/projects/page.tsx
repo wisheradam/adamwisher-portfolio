@@ -16,6 +16,7 @@ export const metadata: Metadata = {
 };
 
 const projects = [
+  {title: 'INNOVA Product Checker', category: 'INNOVA · Catalog', status: 'Evaluation', summary: 'Search product codes and technical descriptions in the evaluation catalog.', accent: 'border-teal-400/30 bg-teal-400/10 text-teal-300', href: '/projects/product-checker'},
   {
     title: "INNOVA SN Decoder",
     category: "INNOVA · Internal tooling",
@@ -117,7 +118,7 @@ export default async function ProjectsPage() {
                   <p className="mt-4 text-sm leading-relaxed text-muted-foreground">{project.summary}</p>
                 </div>
                 <div className="mt-8 flex items-center justify-between border-t border-border pt-4 font-mono text-[10px] uppercase tracking-wide text-muted-foreground">
-                  <span>Project brief</span>
+                  <span>{project.href ? <a href={project.href} className="focus-ring underline">Open Product Checker</a> : "Project brief"}</span>
                   <ArrowUpRight size={14} aria-hidden="true" />
                 </div>
               </article>
