@@ -1,17 +1,15 @@
-import { readFile } from "node:fs/promises";
+import { readCatalog } from "@/lib/checker-catalog";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { PROJECTS_SESSION_COOKIE, verifyProjectsSession } from "@/lib/projects-auth";
 
 export const dynamic = "force-dynamic";
 export const metadata = {title: "Product Checker — Adam Wisher", robots: {index: false, follow: false}};
-type Row = {id:string;sku:string;model:string;family:string;description:string;price_raw:string;currency:string;page:number;notes:string[];issues:string[]};
 export default async function ProductChecker({searchParams}:{searchParams:Promise<{q?:string}>}) {
   if (!verifyProjectsSession((await cookies()).get(PROJECTS_SESSION_COOKIE)?.value)) redirect("/projects/login");
   const raw = (await searchParams).q;
   const q = typeof raw === "string" ? raw.trim().slice(0,160) : "";
-  const file = process.env.PRODUCT_CHECKER_CATALOG_PATH;
-  const rows:Row[]|null = file ? JSON.parse(await readFile(file,"utf8")) : null;
+  const rows = readCatalog();
   const exact = rows?.filter(r=>r.sku?.toLowerCase()===q.toLowerCase()) ?? [];
   const terms = q.toLowerCase().split(/\s+/);
   const matches = !q ? [] : exact.length ? exact : (rows??[]).filter(r=>{
