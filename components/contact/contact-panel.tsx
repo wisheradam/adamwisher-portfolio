@@ -41,8 +41,8 @@ export function ContactPanel() {
   }
 
   return (
-    <div className="mt-12 grid items-start gap-8 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] lg:gap-12">
-      <div className="space-y-4">
+    <div className="contact-panels">
+      <div className="contact-methods space-y-4">
         <a href="mailto:Mail@adamwisher.com" className="focus-ring block rounded-lg border border-border bg-surface p-6 transition-colors hover:border-accent/50 sm:p-8">
           <Mail className="text-accent" size={24} aria-hidden="true" />
           <p className="mt-6 font-mono text-xs uppercase tracking-wide text-muted-foreground">Email</p>
@@ -58,12 +58,12 @@ export function ContactPanel() {
         </div>
       </div>
 
-      <section aria-labelledby="request-heading" className="rounded-lg border border-border bg-surface p-6 sm:p-8">
+      <section aria-labelledby="request-heading" className="contact-form-panel rounded-lg border border-border bg-surface p-6 sm:p-8">
         <h2 id="request-heading" className="font-display text-2xl font-medium tracking-tight">Send a request</h2>
         <p className="mt-3 text-sm leading-relaxed text-muted-foreground">Tell me what you have in mind and how I can help.</p>
         {sent ? <div role="status" className="py-12"><CheckCircle2 className="text-accent" size={32} aria-hidden="true" /><h3 className="mt-5 font-display text-xl">Your request has been sent.</h3><p className="mt-3 text-sm text-muted-foreground">Thank you. I’ll reply to the email address you provided.</p><button onClick={() => { setSent(false); startedAt.current = Date.now(); }} className="focus-ring mt-6 rounded-sm text-sm text-accent">Send another request</button></div> : (
           <form onSubmit={submit} className="mt-8 space-y-5">
-            <div className="grid gap-5 sm:grid-cols-2">
+            <div className="grid gap-5">
               <label className="text-sm">Your name<input className={inputStyle} name="name" autoComplete="name" required minLength={2} maxLength={100} disabled={sending} /></label>
               <label className="text-sm">Email address<input className={inputStyle} name="email" type="email" autoComplete="email" required maxLength={254} disabled={sending} /></label>
             </div>

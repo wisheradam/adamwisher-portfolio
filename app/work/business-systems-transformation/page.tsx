@@ -1,3 +1,4 @@
+import { SiteHeader } from "@/components/site-header";
 import type { Metadata } from "next";
 import Link from "next/link";
 
@@ -42,11 +43,8 @@ const principles = [
 export default function BusinessSystemsTransformationPage() {
   return (
     <main className="min-h-screen">
-      <div className="mx-auto max-w-7xl px-6 py-8 lg:px-12 lg:py-12">
-        <header className="flex items-center justify-between border-b border-border pb-6">
-          <Link href="/" className="focus-ring rounded-sm font-display text-sm font-medium">Adam Wisher</Link>
-          <Link href="/work" className="focus-ring rounded-sm font-mono text-xs uppercase tracking-wide text-muted-foreground transition-colors hover:text-foreground">← All work</Link>
-        </header>
+      <div className="page-shell route-page">
+        <SiteHeader />
 
         <article>
           <section className="grid gap-10 border-b border-border py-16 lg:grid-cols-[1.25fr_0.75fr] lg:py-24">

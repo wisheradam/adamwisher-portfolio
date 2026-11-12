@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "next lint",
     "hash:projects-password": "node scripts/hash-projects-password.mjs",
-    "validate:ask-adam": "node scripts/validate-ask-adam.mjs"
+    "validate:ask-adam": "node scripts/validate-ask-adam.mjs",
+    "typecheck": "tsc --noEmit",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.1163.0",
@@ -24,6 +26,8 @@
     "tailwind-merge": "^2.5.4"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
+    "@playwright/test": "^1.65.0",
     "@types/node": "^20.16.11",
     "@types/react": "^19.1.12",
     "@types/react-dom": "^19.1.9",

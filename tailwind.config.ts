@@ -24,17 +24,17 @@ const config: Config = {
         surface: "rgb(var(--color-surface) / <alpha-value>)",
         accent: {
           DEFAULT: "rgb(var(--color-accent) / <alpha-value>)",
-          foreground: "#F4F4F5",
+          foreground: "rgb(var(--color-on-accent) / <alpha-value>)",
         },
       },
       fontFamily: {
         sans: ["var(--font-sans)", "system-ui", "sans-serif"],
-        display: ["var(--font-display)", "system-ui", "sans-serif"],
+        display: ["var(--font-sans)", "system-ui", "sans-serif"],
         mono: ["var(--font-mono)", "monospace"],
       },
       borderRadius: {
-        lg: "12px",
-        md: "10px",
+        lg: "24px",
+        md: "16px",
         sm: "8px",
       },
       keyframes: {
