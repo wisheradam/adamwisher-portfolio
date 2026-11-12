@@ -1,0 +1,167 @@
+/* User-requested revision: optical controls inspired by Apple HIG Materials.
+   A CSS web approximation, not Apple's native Liquid Glass renderer. */
+:root,
+:root.light {
+  --reference-base: #e8edf3;
+  --reference-blue: #ccdbf8;
+  --reference-lilac: #e1cee1;
+  --liquid-text: #263e62;
+  --liquid-tint: rgb(255 255 255 / 0.3);
+  --liquid-primary-tint: rgb(221 234 255 / 0.48);
+  --liquid-light: rgb(255 255 255 / 0.72);
+  --liquid-edge: rgb(255 255 255 / 0.88);
+  --liquid-shadow: rgb(54 74 112 / 0.13);
+  --liquid-bottom: rgb(100 127 172 / 0.18);
+  --page-gradient:
+    radial-gradient(
+      ellipse 68vw 54vh at 0% 58vh,
+      rgb(204 219 248 / 0.92),
+      transparent 100%
+    ),
+    radial-gradient(
+      ellipse 58vw 54vh at 92% 100vh,
+      rgb(225 206 225 / 0.94),
+      transparent 100%
+    ),
+    linear-gradient(180deg, #e8edf3 0%, #e5ecf6 45%, #e1cee1 100%);
+}
+:root.dark {
+  --reference-base: #121925;
+  --liquid-text: #f3f6fc;
+  --liquid-tint: rgb(34 48 70 / 0.68);
+  --liquid-primary-tint: rgb(49 75 112 / 0.72);
+  --liquid-light: rgb(255 255 255 / 0.12);
+  --liquid-edge: rgb(209 225 250 / 0.44);
+  --liquid-shadow: rgb(4 10 22 / 0.32);
+  --liquid-bottom: rgb(0 0 0 / 0.35);
+  --page-gradient:
+    radial-gradient(
+      ellipse 68vw 54vh at 0% 58vh,
+      rgb(45 72 110 / 0.8),
+      transparent 100%
+    ),
+    radial-gradient(
+      ellipse 58vw 54vh at 92% 100vh,
+      rgb(81 58 89 / 0.75),
+      transparent 100%
+    ),
+    linear-gradient(180deg, #121925 0%, #1c283b 100%);
+}
+/* Viewport-scaled first-screen light fields keep the reference's blue/lilac placement
+   independent of the length of a case study or course list. */
+body {
+  position: relative;
+  isolation: isolate;
+  background: var(--reference-base);
+}
+body::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--page-gradient);
+}
+:is(.primary-button, .nav-pill, .glass-control, .liquid-button) {
+  position: relative;
+  isolation: isolate;
+  border: 1px solid var(--liquid-edge);
+  border-radius: 999px;
+  background:
+    linear-gradient(
+      155deg,
+      var(--liquid-light) 0%,
+      transparent 48%,
+      rgb(255 255 255 / 0.09) 100%
+    ),
+    var(--liquid-tint);
+  color: var(--liquid-text);
+  box-shadow:
+    0 6px 18px var(--liquid-shadow),
+    inset 0 1px 0 var(--liquid-edge),
+    inset 0 -1px 1px var(--liquid-bottom);
+  -webkit-backdrop-filter: blur(20px) saturate(145%);
+  backdrop-filter: blur(20px) saturate(145%);
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  text-decoration: none;
+  transition:
+    background-color 0.18s,
+    box-shadow 0.18s,
+    transform 0.18s;
+}
+:is(.primary-button, .liquid-button--primary) {
+  background-color: var(--liquid-primary-tint);
+}
+:is(.primary-button, .nav-pill, .glass-control, .liquid-button)::before {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse at 22% -25%,
+    var(--liquid-light),
+    transparent 68%
+  );
+  box-shadow:
+    inset 1px 1px 1px var(--liquid-edge),
+    inset -1px -1px 2px var(--liquid-bottom);
+}
+.nav-pill[aria-current="page"] {
+  color: rgb(var(--color-accent));
+  background-color: var(--liquid-primary-tint);
+}
+@media (hover: hover) and (pointer: fine) {
+  :is(.primary-button, .nav-pill, .glass-control, .liquid-button):hover:not(
+      :disabled
+    ) {
+    background-color: var(--liquid-primary-tint);
+    color: var(--liquid-text);
+    box-shadow:
+      0 8px 22px var(--liquid-shadow),
+      inset 0 1px 1px var(--liquid-edge),
+      inset 0 -1px 2px var(--liquid-bottom);
+    transform: translateY(-1px);
+  }
+}
+:is(.primary-button, .nav-pill, .glass-control, .liquid-button):active:not(
+    :disabled
+  ) {
+  transform: translateY(1px) scale(0.985);
+}
+.liquid-button:disabled {
+  opacity: 0.58;
+  box-shadow: inset 0 1px 0 var(--liquid-edge);
+}
+/* Content remains on standard, denser materials; optical effects belong to controls. */
+@supports not (
+  (backdrop-filter: blur(20px)) or (-webkit-backdrop-filter: blur(20px))
+) {
+  :is(.primary-button, .nav-pill, .glass-control, .liquid-button) {
+    background: var(--surface-solid);
+    border-color: var(--control-border);
+    box-shadow: none;
+  }
+  :is(.primary-button, .nav-pill, .glass-control, .liquid-button)::before {
+    display: none;
+  }
+}
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  :is(.primary-button, .nav-pill, .glass-control, .liquid-button) {
+    background: var(--surface-solid);
+    border-color: var(--control-border);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow: none;
+  }
+  :is(.primary-button, .nav-pill, .glass-control, .liquid-button)::before {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  :is(.primary-button, .nav-pill, .glass-control, .liquid-button) {
+    transition: none;
+  }
+}

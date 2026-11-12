@@ -168,9 +168,7 @@ input:disabled {
   font-weight: 500;
   background: var(--surface-solid);
 }
-.nav-pill:hover,
 .nav-pill[aria-current="page"] {
-  background: var(--surface-solid);
   color: rgb(var(--color-accent));
 }
 .glass-control {
@@ -283,9 +281,6 @@ input:disabled {
   font-weight: 600;
   line-height: 22px;
   transition: background 0.15s;
-}
-.primary-button:hover {
-  background: var(--interactive);
 }
 .primary-button:active,
 button:active:not(:disabled) {

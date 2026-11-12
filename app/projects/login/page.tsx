@@ -94,7 +94,7 @@ export default async function ProjectsLoginPage({
               <button
                 type="submit"
                 disabled={!configured}
-                className="focus-ring mt-5 flex min-h-12 w-full items-center justify-center rounded-md bg-accent px-5 py-3 text-sm font-medium text-accent-foreground transition-colors hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50"
+                className="focus-ring mt-5 flex min-h-12 w-full items-center justify-center rounded-md liquid-button liquid-button--primary px-5 py-3 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Open projects
               </button>
