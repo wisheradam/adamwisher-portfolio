@@ -95,6 +95,7 @@ for (const width of [1440, 390, 320]) {
       .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
       .analyze();
     expect(a11y.violations).toEqual([]);
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: "instant" }));
     await page.screenshot({
       path: `docs/review/home-${width}-dark.png`,
       fullPage: true,
