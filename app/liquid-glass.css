@@ -32,8 +32,9 @@
 :root.dark {
   --reference-base: #121925;
   --liquid-text: #000;
-  --liquid-tint: transparent;
-  --liquid-primary-tint: transparent;
+  /* Black labels need a light transmitting lens over the dark page. */
+  --liquid-tint: rgb(235 242 252 / 0.62);
+  --liquid-primary-tint: rgb(235 242 252 / 0.62);
   --liquid-light: rgb(255 255 255 / 0.1);
   --liquid-edge: rgb(225 237 255 / 0.72);
   --liquid-shadow: rgb(4 10 22 / 0.36);
