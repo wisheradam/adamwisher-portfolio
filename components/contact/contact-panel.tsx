@@ -48,7 +48,7 @@ export function ContactPanel() {
           <p className="mt-6 font-mono text-xs uppercase tracking-wide text-muted-foreground">Email</p>
           <div className="mt-2 flex items-center justify-between gap-3"><span className="break-all font-display text-xl sm:text-2xl">Mail@adamwisher.com</span><ArrowUpRight size={18} aria-hidden="true" /></div>
         </a>
-        <div className="contact-form-panel rounded-lg border border-border bg-surface p-6 sm:p-8">
+        <div className="rounded-lg border border-border bg-surface p-6 sm:p-8">
           <Phone className="text-accent" size={24} aria-hidden="true" />
           <p className="mt-6 font-mono text-xs uppercase tracking-wide text-muted-foreground">Phone</p>
           {phone ? <a href={`tel:${phone}`} className="focus-ring mt-2 inline-block rounded-sm font-display text-2xl">{phone}</a> : <p className="mt-2 select-none font-display text-2xl text-muted-foreground" aria-label="Phone number hidden">+972 •• ••• •• ••</p>}

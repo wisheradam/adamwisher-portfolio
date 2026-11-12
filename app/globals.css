@@ -799,7 +799,7 @@ textarea:user-invalid {
   font-weight: 500;
   text-transform: uppercase;
 }
-.route-page #education-heading {
+.route-page h1#education-heading {
   font-size: 60px;
   line-height: 64px;
   letter-spacing: -1.5px;
@@ -815,7 +815,7 @@ textarea:user-invalid {
     line-height: 36px;
   }
   .reading-surface h1,
-  .route-page #education-heading {
+  .route-page h1#education-heading {
     font-size: 36px;
     line-height: 40px;
   }
