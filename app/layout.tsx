@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
+import "./liquid-glass.css";
 import { SiteFooter } from "@/components/site-footer";
 
 const inter = Inter({

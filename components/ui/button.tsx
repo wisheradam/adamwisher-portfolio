@@ -8,8 +8,8 @@ export interface ButtonProps
 }
 
 const variantClasses: Record<NonNullable<ButtonProps["variant"]>, string> = {
-  default: "bg-accent text-accent-foreground hover:opacity-90",
-  outline: "border border-border bg-transparent hover:bg-surface",
+  default: "liquid-button liquid-button--primary",
+  outline: "liquid-button",
   ghost: "bg-transparent hover:bg-surface",
 };
 

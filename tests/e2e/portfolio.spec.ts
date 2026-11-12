@@ -87,6 +87,11 @@ for (const width of [1440, 390, 320]) {
       path: `docs/review/home-${width}-light.png`,
       fullPage: true,
     });
+    if (width === 390)
+      await page.screenshot({
+        path: "docs/review/liquid-glass-mobile.png",
+        fullPage: false,
+      });
     await page.getByRole("button", { name: "Switch to dark theme" }).click();
     await expect(page.locator("html")).toHaveClass("dark");
     await page.reload();
@@ -253,4 +258,37 @@ test("intermediate widths, reduced motion, visible focus and real local Ask Adam
   await page.locator("#ask-adam-input").fill("Show me Adam's AI experience.");
   await page.getByRole("button", { name: "Send question to Ask Adam" }).click();
   await expect(page.getByRole("log")).toContainText("INNOVA");
+});
+
+test("glass controls retain a legible opaque alternative and Inter loads", async ({
+  page,
+  context,
+}) => {
+  await page.setViewportSize({ width: 390, height: 900 });
+  await page.goto("/");
+  await page.evaluate(() => document.fonts.ready);
+  expect(
+    await page.evaluate(() =>
+      Array.from(document.fonts).some(
+        (font) => font.family.includes("Inter") && font.status === "loaded",
+      ),
+    ),
+  ).toBe(true);
+  const action = page.getByRole("link", { name: "View selected work" });
+  const before = await action.boundingBox();
+  const session = await context.newCDPSession(page);
+  await session.send("Emulation.setEmulatedMedia", {
+    features: [{ name: "prefers-reduced-transparency", value: "reduce" }],
+  });
+  expect(
+    await action.evaluate((el) => getComputedStyle(el).backdropFilter),
+  ).toBe("none");
+  await expect(action).toBeVisible();
+  expect(await action.boundingBox()).toEqual(before);
+  const a11y = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21aa", "wcag22aa"])
+    .analyze();
+  expect(a11y.violations).toEqual([]);
+  await action.click();
+  await expect(page).toHaveURL(/#selected-work$/);
 });

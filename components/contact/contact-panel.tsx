@@ -52,7 +52,7 @@ export function ContactPanel() {
           <Phone className="text-accent" size={24} aria-hidden="true" />
           <p className="mt-6 font-mono text-xs uppercase tracking-wide text-muted-foreground">Phone</p>
           {phone ? <a href={`tel:${phone}`} className="focus-ring mt-2 inline-block rounded-sm font-display text-2xl">{phone}</a> : <p className="mt-2 select-none font-display text-2xl text-muted-foreground" aria-label="Phone number hidden">+972 •• ••• •• ••</p>}
-          {!phone ? <button onClick={revealPhone} disabled={phoneLoading} aria-expanded={Boolean(phone)} className="focus-ring mt-5 rounded-md border border-border px-4 py-2.5 text-sm transition-colors hover:border-accent disabled:opacity-50">{phoneLoading ? "Revealing…" : "Show phone number"}</button> : null}
+          {!phone ? <button onClick={revealPhone} disabled={phoneLoading} aria-expanded={Boolean(phone)} className="focus-ring liquid-button mt-5 px-4 py-2.5 text-sm disabled:opacity-50">{phoneLoading ? "Revealing…" : "Show phone number"}</button> : null}
           <p className="mt-4 text-sm text-muted-foreground">Prefer a scheduled conversation? Choose “Request a call” in the form.</p>
           {phoneError ? <p role="alert" className="mt-3 text-sm text-red-400">{phoneError}</p> : null}
         </div>
@@ -73,7 +73,7 @@ export function ContactPanel() {
             <label className="flex items-start gap-3 text-xs leading-relaxed text-muted-foreground"><input type="checkbox" name="consent" required disabled={sending} className="focus-ring mt-1 accent-blue-500" />I agree that my name, email, and message will be used to respond to this request.</label>
             <p className="text-xs leading-relaxed text-muted-foreground">Your request is emailed to me. Please avoid sharing passwords or sensitive information.</p>
             {error ? <p role="alert" className="text-sm text-red-400">{error}</p> : null}
-            <button type="submit" disabled={sending} className="focus-ring flex min-h-12 w-full items-center justify-center gap-2 rounded-md bg-accent px-5 py-3 text-sm font-medium text-accent-foreground transition-colors hover:bg-accent/90 disabled:opacity-50">{sending ? "Sending…" : "Send request"}<ArrowUpRight size={16} aria-hidden="true" /></button>
+            <button type="submit" disabled={sending} className="focus-ring flex min-h-12 w-full items-center justify-center gap-2 rounded-md liquid-button liquid-button--primary px-5 py-3 text-sm font-medium transition-colors disabled:opacity-50">{sending ? "Sending…" : "Send request"}<ArrowUpRight size={16} aria-hidden="true" /></button>
           </form>
         )}
       </section>
