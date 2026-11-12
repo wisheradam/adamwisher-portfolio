@@ -8,15 +8,15 @@ export interface ButtonProps
 }
 
 const variantClasses: Record<NonNullable<ButtonProps["variant"]>, string> = {
-  default: "bg-foreground text-background hover:opacity-90",
+  default: "bg-accent text-accent-foreground hover:opacity-90",
   outline: "border border-border bg-transparent hover:bg-surface",
   ghost: "bg-transparent hover:bg-surface",
 };
 
 const sizeClasses: Record<NonNullable<ButtonProps["size"]>, string> = {
-  default: "h-10 px-4 text-sm",
-  sm: "h-8 px-3 text-xs",
-  icon: "h-10 w-10",
+  default: "min-h-12 px-5 text-sm",
+  sm: "min-h-11 px-3 text-xs",
+  icon: "h-12 w-12",
 };
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(

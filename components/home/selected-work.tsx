@@ -4,19 +4,19 @@ import Link from "next/link";
 export function SelectedWork() {
   return (
     <section
-      aria-labelledby="selected-work-heading"
-      className="mx-auto max-w-7xl px-6 py-16 lg:px-12 lg:py-24"
+      id="selected-work" aria-labelledby="selected-work-heading"
+      className="selected-work"
     >
       <div className="mb-10">
         <h2
           id="selected-work-heading"
-          className="font-display text-2xl font-medium tracking-tight"
+          className="section-title"
         >
           Selected work
         </h2>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="project-grid">
         <ProjectCard
           title="Single Source of Truth"
           category="Systems · Data · Operations"
@@ -42,8 +42,8 @@ export function SelectedWork() {
           visualSrc="/project-06-rx.svg"
         />
       </div>
-      <div className="mt-10 flex justify-center">
-        <Link href="/work" className="focus-ring inline-flex min-h-12 items-center gap-3 rounded-md border border-border bg-surface px-6 py-3 text-sm font-medium transition-colors hover:border-accent hover:text-accent">More work <span aria-hidden="true">→</span></Link>
+      <div className="more-work">
+        <Link href="/work" className="primary-button focus-ring">More work <span aria-hidden="true">→</span></Link>
       </div>
     </section>
   );

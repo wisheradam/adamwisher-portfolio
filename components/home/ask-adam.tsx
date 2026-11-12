@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type {
@@ -23,6 +23,11 @@ export function AskAdam() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Focus after React has re-enabled the input, including failed requests.
+  useEffect(() => {
+    if (!isLoading && history.length) inputRef.current?.focus();
+  }, [isLoading, history.length]);
 
   async function submitQuestion(question: string) {
     const trimmed = question.trim();
@@ -49,10 +54,12 @@ export function AskAdam() {
       });
 
       if (!res.ok) {
-        const errBody = (await res.json().catch(() => null)) as
-          | AskAdamErrorResponse
-          | null;
-        throw new Error(errBody?.error ?? "Ask Adam couldn't process that question.");
+        const errBody = (await res
+          .json()
+          .catch(() => null)) as AskAdamErrorResponse | null;
+        throw new Error(
+          errBody?.error ?? "Ask Adam couldn't process that question.",
+        );
       }
 
       const data = (await res.json()) as AskAdamResponse;
@@ -61,11 +68,10 @@ export function AskAdam() {
       setError(
         err instanceof Error
           ? err.message
-          : "Something went wrong reaching Ask Adam. Try again in a moment."
+          : "Something went wrong reaching Ask Adam. Try again in a moment.",
       );
     } finally {
       setIsLoading(false);
-      inputRef.current?.focus();
     }
   }
 
@@ -75,22 +81,16 @@ export function AskAdam() {
   }
 
   return (
-    <section
-      aria-labelledby="ask-adam-heading"
-      className="rounded-lg border border-border bg-surface p-5 sm:p-6"
-    >
-      <div className="mb-4 flex items-center gap-2">
+    <section aria-labelledby="ask-adam-heading" className="ask-adam">
+      <div className="ask-heading">
         <span
           className={cn(
             "h-2 w-2 rounded-full bg-accent shadow-[0_0_0_3px_rgba(59,130,246,0.18)]",
-            !isLoading && "animate-blink"
+            !isLoading && "animate-blink",
           )}
           aria-hidden="true"
         />
-        <h2
-          id="ask-adam-heading"
-          className="font-display text-sm font-medium tracking-wide"
-        >
+        <h2 id="ask-adam-heading" className="ask-title">
           Ask Adam
         </h2>
         <span
@@ -102,11 +102,10 @@ export function AskAdam() {
       </div>
 
       <p className="mb-4 text-sm text-muted-foreground">
-        Ask my AI assistant about my experience, projects, skills or
-        background.
+        Ask my AI assistant about my experience, projects, skills or background.
       </p>
 
-      <form onSubmit={handleSubmit} className="flex gap-2">
+      <form onSubmit={handleSubmit} className="ask-form">
         <label htmlFor="ask-adam-input" className="sr-only">
           Ask about Adam&apos;s product experience
         </label>
@@ -123,28 +122,22 @@ export function AskAdam() {
         />
         <Button
           type="submit"
-          size="icon"
+          className="ask-submit"
           disabled={isLoading || !input.trim()}
           aria-label="Send question to Ask Adam"
         >
-          {isLoading ? (
-            <span className="text-xs" aria-hidden="true">
-              …
-            </span>
-          ) : (
-            <span aria-hidden="true">→</span>
-          )}
+          {isLoading ? "Thinking…" : "Send question →"}
         </Button>
       </form>
 
-      <div className="mt-3 flex flex-wrap gap-2">
+      <div className="ask-suggestions">
         {SUGGESTED_QUESTIONS.map((q) => (
           <button
             key={q}
             type="button"
             onClick={() => submitQuestion(q)}
             disabled={isLoading}
-            className="focus-ring rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-accent hover:text-foreground disabled:opacity-50"
+            className="focus-ring suggestion disabled:opacity-50"
           >
             {q}
           </button>
@@ -171,7 +164,7 @@ export function AskAdam() {
                 "rounded-md border px-3 py-2 text-sm leading-relaxed",
                 message.role === "user"
                   ? "self-end border-border bg-background/60"
-                  : "self-start border-accent/30 bg-accent/10"
+                  : "self-start border-accent/30 bg-accent/10",
               )}
             >
               <span className="mb-1 block font-mono text-[10px] uppercase tracking-wide text-muted-foreground">

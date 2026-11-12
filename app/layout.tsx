@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import { Inter, Space_Grotesk, IBM_Plex_Mono } from "next/font/google";
+import { Inter, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { SiteFooter } from "@/components/site-footer";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -9,11 +9,6 @@ const inter = Inter({
   display: "swap",
 });
 
-const spaceGrotesk = Space_Grotesk({
-  subsets: ["latin"],
-  variable: "--font-display",
-  display: "swap",
-});
 
 const plexMono = IBM_Plex_Mono({
   subsets: ["latin"],
@@ -35,15 +30,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark" suppressHydrationWarning>
+    <html lang="en" className="light" suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem('adam-theme')==='light'?'light':'dark';document.documentElement.classList.toggle('dark',t==='dark');document.documentElement.classList.toggle('light',t==='light')}catch(e){}})();` }} />
+        <script dangerouslySetInnerHTML={{ __html: `(function(){try{var t=localStorage.getItem('adam-theme')==='dark'?'dark':'light';document.documentElement.classList.toggle('dark',t==='dark');document.documentElement.classList.toggle('light',t==='light')}catch(e){}})();` }} />
       </head>
       <body
-        className={`${inter.variable} ${spaceGrotesk.variable} ${plexMono.variable} bg-background text-foreground`}
+        className={`${inter.variable} ${plexMono.variable} bg-background text-foreground`}
       >
-        {children}
-        <ThemeToggle />
+        <a href="#main-content" className="skip-link">Skip to content</a>
+        <div id="main-content" tabIndex={-1}>{children}</div>
+        <SiteFooter />
       </body>
     </html>
   );

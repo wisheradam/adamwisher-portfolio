@@ -1,8 +1,8 @@
+import { SiteHeader } from "@/components/site-header";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { ArrowLeft, LockKeyhole, ShieldCheck } from "lucide-react";
+import { LockKeyhole, ShieldCheck } from "lucide-react";
 import {
   isProjectsAuthConfigured,
   PROJECTS_SESSION_COOKIE,
@@ -21,7 +21,9 @@ type LoginPageProps = {
   searchParams: Promise<{ error?: string }>;
 };
 
-export default async function ProjectsLoginPage({ searchParams }: LoginPageProps) {
+export default async function ProjectsLoginPage({
+  searchParams,
+}: LoginPageProps) {
   const cookieStore = await cookies();
   if (verifyProjectsSession(cookieStore.get(PROJECTS_SESSION_COOKIE)?.value)) {
     redirect("/projects");
@@ -32,30 +34,20 @@ export default async function ProjectsLoginPage({ searchParams }: LoginPageProps
 
   return (
     <main className="min-h-screen">
-      <div className="mx-auto max-w-7xl px-6 py-8 lg:px-12 lg:py-12">
-        <header className="flex items-center justify-between border-b border-border pb-6">
-          <Link href="/" className="focus-ring rounded-sm font-display text-sm font-medium">
-            Adam Wisher
-          </Link>
-          <Link
-            href="/"
-            className="focus-ring flex items-center gap-2 rounded-sm font-mono text-xs uppercase tracking-wide text-muted-foreground transition-colors hover:text-foreground"
-          >
-            <ArrowLeft size={14} aria-hidden="true" />
-            Back to site
-          </Link>
-        </header>
+      <div className="page-shell route-page">
+        <SiteHeader />
 
-        <section className="mx-auto grid min-h-[72vh] max-w-4xl content-center gap-12 py-16 lg:grid-cols-[1fr_0.82fr] lg:items-center">
+        <section className="login-panel route-content">
           <div>
-            <p className="font-mono text-xs uppercase tracking-[0.18em] text-accent">
-              Private workspace
-            </p>
+            <p className="pill inline-flex">Private workspace</p>
             <h1 className="mt-5 font-display text-5xl font-medium leading-[0.98] tracking-[-0.045em] sm:text-7xl">
-              Projects,<br />kept private.
+              Projects,
+              <br />
+              kept private.
             </h1>
             <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">
-              Sign in to view the internal project overview and current workstreams.
+              Sign in to view the internal project overview and current
+              workstreams.
             </p>
           </div>
 
@@ -71,7 +63,10 @@ export default async function ProjectsLoginPage({ searchParams }: LoginPageProps
             </div>
 
             <form action="/api/projects/login" method="post" className="mt-8">
-              <label htmlFor="password" className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+              <label
+                htmlFor="password"
+                className="font-mono text-[10px] uppercase tracking-[0.16em] text-muted-foreground"
+              >
                 Access password
               </label>
               <input
@@ -90,7 +85,7 @@ export default async function ProjectsLoginPage({ searchParams }: LoginPageProps
                   The password is incorrect. Please try again.
                 </p>
               ) : null}
-              {(!configured || error === "configuration") ? (
+              {!configured || error === "configuration" ? (
                 <p role="alert" className="mt-3 text-sm text-red-400">
                   Private access is not configured yet.
                 </p>
@@ -106,7 +101,8 @@ export default async function ProjectsLoginPage({ searchParams }: LoginPageProps
             </form>
 
             <p className="mt-5 text-sm leading-relaxed text-muted-foreground">
-              Authentication is checked on the server. The password is never stored in this page or sent to client-side code.
+              Authentication is checked on the server. The password is never
+              stored in this page or sent to client-side code.
             </p>
           </div>
         </section>
