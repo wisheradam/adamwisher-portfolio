@@ -76,16 +76,17 @@ body::before {
   isolation: isolate;
   border: 1px solid transparent;
   border-radius: 999px;
-  /* Keep the lens center clear. Gloss is carried by the curved edge layers. */
+  /* Transparent water lens: specular reflections cover the whole curved face. */
   background: var(--liquid-fill);
   color: var(--liquid-text);
   box-shadow:
     0 14px 26px -6px var(--liquid-shadow),
     0 3px 6px var(--liquid-contact),
-    inset 0 1px 0 var(--liquid-reflection),
-    inset 0 -1px 0 var(--liquid-edge),
-    inset 1px 0 1px var(--liquid-light),
-    inset -1px 0 1px var(--liquid-bottom);
+    inset 0 1px 1px rgb(255 255 255 / 0.95),
+    inset 0 7px 9px -5px rgb(255 255 255 / 0.75),
+    inset 0 -9px 10px -8px rgb(34 52 78 / 0.3),
+    inset 3px 0 5px -3px rgb(255 255 255 / 0.8),
+    inset -3px 0 5px -3px rgb(34 52 78 / 0.18);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
   font-weight: 500;
@@ -99,57 +100,50 @@ body::before {
 :is(.primary-button, .liquid-button--primary) {
   --liquid-fill: var(--liquid-primary-tint);
 }
-/* Edge-only reflections leave the entire button face unpainted.
-   Both optical layers remain behind labels and outside hit testing. */
+/* Broad reflection rolls across the complete convex face, behind black labels.
+   No solid tint or blur: the underlying page remains visible through the lens. */
 :is(.primary-button, .nav-pill, .glass-control, .liquid-button)::before {
   content: "";
   position: absolute;
-  inset: 2px;
+  inset: 1px;
   z-index: -1;
   border-radius: inherit;
   pointer-events: none;
-  background: transparent;
+  background:
+    radial-gradient(
+      ellipse 90% 100% at 38% -35%,
+      rgb(255 255 255 / 0.82) 0%,
+      rgb(255 255 255 / 0.36) 45%,
+      rgb(255 255 255 / 0.12) 66%,
+      transparent 80%
+    ),
+    linear-gradient(
+      170deg,
+      rgb(255 255 255 / 0.16) 0%,
+      rgb(255 255 255 / 0.06) 38%,
+      transparent 48%,
+      rgb(32 51 81 / 0.045) 68%,
+      transparent 84%,
+      rgb(255 255 255 / 0.3) 100%
+    );
   box-shadow:
-    inset 0 1px 1px var(--liquid-reflection),
-    inset 0 -1px 1px var(--liquid-reflection),
-    inset 1px 0 2px var(--liquid-bottom);
+    inset 0 1px 0 rgb(255 255 255 / 0.9),
+    inset 0 -1px 1px rgb(255 255 255 / 0.75);
+  transition: opacity 0.18s;
 }
-/* Mask out the center: this is a hollow refractive rim, never a text overlay. */
-@supports (mask-composite: exclude) or (-webkit-mask-composite: xor) {
-  :is(.primary-button, .nav-pill, .glass-control, .liquid-button)::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    padding: 3px;
-    border-radius: inherit;
-    pointer-events: none;
-    /* Alternating bright/dark bands suggest the thick polished lip in the references.
-       The mask removes the entire center, including the area beneath the label. */
-    background:
-      radial-gradient(ellipse 60% 90% at 8% 0%, var(--liquid-reflection), transparent 70%),
-      radial-gradient(ellipse 48% 80% at 95% 100%, var(--liquid-reflection), transparent 72%),
-      linear-gradient(
-        175deg,
-        var(--liquid-reflection) 0%,
-        var(--liquid-edge) 6%,
-        var(--liquid-bottom) 16%,
-        transparent 31%,
-        var(--liquid-rim-blue) 48%,
-        transparent 60%,
-        var(--liquid-bottom) 78%,
-        var(--liquid-edge) 93%,
-        var(--liquid-reflection) 100%
-      );
-    -webkit-mask:
-      linear-gradient(#fff 0 0) content-box,
-      linear-gradient(#fff 0 0);
-    mask:
-      linear-gradient(#fff 0 0) content-box,
-      linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-  }
+/* Soft specular hot spots and a focused lower caustic replace the thick rim. */
+:is(.primary-button, .nav-pill, .glass-control, .liquid-button)::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 28% 22% at 25% 10%, rgb(255 255 255 / 0.95), transparent 85%),
+    radial-gradient(ellipse 55% 15% at 63% 94%, rgb(255 255 255 / 0.8), transparent 90%),
+    radial-gradient(ellipse 5% 55% at 2% 40%, rgb(255 255 255 / 0.7), transparent 95%),
+    radial-gradient(ellipse 4% 45% at 98% 58%, rgb(255 255 255 / 0.6), transparent 95%);
 }
 .nav-pill[aria-current="page"] {
   color: var(--liquid-text);
@@ -164,9 +158,10 @@ body::before {
     box-shadow:
       0 18px 30px -5px var(--liquid-shadow),
       0 4px 8px var(--liquid-contact),
-      inset 0 1px 1px var(--liquid-reflection),
-      inset 0 -1px 1px var(--liquid-edge),
-      inset 1px 0 2px var(--liquid-bottom);
+      inset 0 1px 1px rgb(255 255 255 / 0.95),
+      inset 0 7px 9px -5px rgb(255 255 255 / 0.85),
+      inset 0 -9px 10px -8px rgb(34 52 78 / 0.3),
+      inset 3px 0 5px -3px rgb(255 255 255 / 0.8);
     transform: translateY(-1px);
   }
 }
