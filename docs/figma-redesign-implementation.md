@@ -95,3 +95,7 @@ Controls now share a CSS Liquid Glass approximation: translucent tint, backgroun
 Image sampling excluding browser chrome found a neutral patch of #E8EDF3 and a blue patch near #CADBF7, consistent with the approved #CCDBF8 palette within JPEG/gradient variation. Viewport-scaled first-screen radial fields now places blue light on the left and lilac at the lower right, instead of stretching one diagonal gradient over the entire long page. The top remains neutral. Dark uses separately chosen tokens.
 
 Inter remains the approved practical typeface, with 500 headlines/control labels and 600 identity text. The exact font in the bitmap cannot be established reliably. Headline scale, tracking and responsive breaks remain intact; button labels now use a calmer medium weight. The screenshot's Safari UI is not part of the site.
+
+### Higher-gloss control revision
+
+Following the owner's approval of text and background, only the button material was intensified: clearer fill, brighter curved upper reflection, a hollow two-pixel refractive rim, lower return light, deeper contact/ambient shadows, and stronger hover depth. Light and dark use separate optical tokens. Decorative layers remain behind labels and ignore pointer events. Both optical layers disappear for reduced transparency/increased contrast and unsupported backdrop filters. Approved background and typography values are unchanged by this revision.
