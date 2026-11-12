@@ -104,3 +104,10 @@ Following the owner's approval of text and background, only the button material 
 ### Clear Dock-style glass
 
 The owner supplied an iOS Dock reference and requested maximum transparency. Removed the broad milky highlight and dense tint: the light control fill is now 2.5–4.5% and the dark fill 8–12%; these are tint-layer alpha values, not overall rendered opacity. Background blur is reduced to 5px. Reflections are confined to narrow edge regions, preserving a transparent center while retaining the glossy rim and volume. Text, page gradient and layout remain unchanged. The effect is CSS glass, not the native iOS Dock renderer.
+
+
+### Clear polished lens revision, 12 November 2026
+
+Based on the owner's Apple glass-controls and transparent iOS Dock references, the lens center now has only a 0.8% neutral / 1.5% primary tint in light mode and 2.5% / 4% in dark mode. These describe the fill layer only, not final pixel opacity. Removed the broad face gradients, reduced backdrop blur to 2px, and concentrated highlights on a masked 3px lip with alternating light/dark bands, corner glints and a lower return reflection. Labels, geometry, approved page gradients and font settings retain their previous values. Hover uses the same thin specular treatment. Reduced-transparency, increased-contrast and unsupported-filter fallbacks remain opaque. This remains a CSS approximation without native optical refraction.
+
+Validation for this revision: optimized `npm run build` passed, including lint and type validation; CSS parser and whitespace checks passed; approved light/dark page gradient definitions compared unchanged. Browser visual QA could not run: the managed preview launcher adds `--host` and `--strictPort`, which this Next.js CLI rejects. No alternate browser path was used. Existing screenshots and the 12/12 browser result above describe earlier revisions and must not be presented as evidence of this latest material. Physical iOS/Safari review is still outstanding. Draft PR only; no merge or deployment.
