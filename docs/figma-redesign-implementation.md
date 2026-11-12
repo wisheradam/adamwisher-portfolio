@@ -99,3 +99,8 @@ Inter remains the approved practical typeface, with 500 headlines/control labels
 ### Higher-gloss control revision
 
 Following the owner's approval of text and background, only the button material was intensified: clearer fill, brighter curved upper reflection, a hollow two-pixel refractive rim, lower return light, deeper contact/ambient shadows, and stronger hover depth. Light and dark use separate optical tokens. Decorative layers remain behind labels and ignore pointer events. Both optical layers disappear for reduced transparency/increased contrast and unsupported backdrop filters. Approved background and typography values are unchanged by this revision.
+
+
+### Clear Dock-style glass
+
+The owner supplied an iOS Dock reference and requested maximum transparency. Removed the broad milky highlight and dense tint: the light control fill is now 2.5–4.5% and the dark fill 8–12%; these are tint-layer alpha values, not overall rendered opacity. Background blur is reduced to 5px. Reflections are confined to narrow edge regions, preserving a transparent center while retaining the glossy rim and volume. Text, page gradient and layout remain unchanged. The effect is CSS glass, not the native iOS Dock renderer.
