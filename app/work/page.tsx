@@ -1,9 +1,13 @@
 import { SiteHeader } from "@/components/site-header";
 import { ProjectCard } from "@/components/work/project-card";
+import Link from "next/link";
+import { db } from "@/lib/admin/db";
 
-export const revalidate = 300;
+export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 export default function WorkPage() {
+  const managed = db().prepare("SELECT slug,title,summary,category,role FROM projects WHERE status='PUBLISHED' AND visibility='PUBLIC' AND deleted_at IS NULL ORDER BY sort_order,title LIMIT 100").all() as {slug:string;title:string;summary:string;category:string;role:string}[];
   return (
     <main className="page-shell route-page">
       <SiteHeader />
@@ -74,6 +78,7 @@ export default function WorkPage() {
             visualSrc="/project-06-rx.svg"
           />
         </div>
+        {managed.length>0&&<section aria-label="More projects" className="mt-12"><h2 className="section-title">More projects</h2><div className="project-grid">{managed.map(project=><article key={project.slug} className="project-card project-copy"><p>{project.category}</p><h3>{project.title}</h3><p>{project.summary}</p><p>{project.role}</p><Link href={`/work/${project.slug}`}>View case study</Link></article>)}</div></section>}
       </section>
     </main>
   );
