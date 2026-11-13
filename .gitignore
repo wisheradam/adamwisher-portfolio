@@ -9,3 +9,4 @@ out
 playwright-report/
 test-results/
 *.tsbuildinfo
+.data/
