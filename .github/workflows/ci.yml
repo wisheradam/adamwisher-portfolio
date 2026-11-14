@@ -30,6 +30,8 @@ jobs:
         run: npm run build
       - name: Admin data integration
         run: npm run test:admin-data
+      - name: Admin security integration
+        run: npm run test:admin-security
       - name: Install pinned Playwright Chromium and OS dependencies
         run: npx playwright install --with-deps chromium
       - name: Configure isolated browser test database
@@ -43,10 +45,12 @@ jobs:
           const hash = `scrypt:${salt}:${scryptSync(password,salt,64).toString('hex')}`;
           for (const value of [password, secret, hash]) console.log(`::add-mask::${value}`);
           fs.appendFileSync(process.env.GITHUB_ENV,
-            `ADMIN_DATABASE_DRIVER=pglite\nADMIN_DB_PATH=${process.env.RUNNER_TEMP}/admin-e2e-pg\nADMIN_TEST_PASSWORD=${password}\nADMIN_PASSWORD_HASH=${hash}\nADMIN_SESSION_SECRET=${secret}\n`);
+            `ADMIN_DATABASE_DRIVER=pglite\nADMIN_DB_PATH=${process.env.RUNNER_TEMP}/admin-e2e-pg\nADMIN_TEST_PASSWORD=${password}\nADMIN_TEST_EMAIL=admin@example.test\nADMIN_BOOTSTRAP_EMAIL=admin@example.test\nADMIN_PASSWORD_HASH=${hash}\nADMIN_SESSION_SECRET=${secret}\n`);
           NODE
       - name: Migrate isolated browser database
         run: npm run admin:migrate
+      - name: Bootstrap isolated Admin account
+        run: npm run admin:bootstrap
       - name: Browser regressions
         run: npm run test:e2e
       - name: Upload browser evidence on failure

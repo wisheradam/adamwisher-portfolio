@@ -9,7 +9,7 @@ const fields: Record<Kind, string[]> = {
 };
 const statuses: Record<Kind, string[]> = {
   projects: ["DRAFT","REVIEW","PUBLISHED","ARCHIVED"],
-  products: ["CONCEPT","DEVELOPMENT","BETA","RELEASED","PAUSED","ARCHIVED"],
+  products: ["DRAFT","CONCEPT","DEVELOPMENT","BETA","PUBLISHED","RELEASED","PAUSED","ARCHIVED"],
 };
 export function isKind(value: string): value is Kind { return kinds.includes(value as Kind); }
 export function validate(kind: Kind, raw: unknown): Record<string, string | number | null> {
@@ -54,10 +54,11 @@ export async function write(kind: Kind, data: Record<string,string|number|null>,
     const values: Record<string, string|number|boolean|null> = { ...(before ?? {}), ...data, id: entityId, created_at: before?.created_at ?? now, updated_at: now, updated_by: actor };
     if (!values.slug || !values.title || (kind === "products" && !values.type)) throw new Error("Slug, title and type are required");
     const columns = Object.keys(values).filter(k => ["id","created_at","updated_at","updated_by","published_at",...fields[kind]].includes(k));
-    if(kind==="projects" && data.status==="PUBLISHED" && !before?.published_at) {values.published_at=now;if(!columns.includes("published_at"))columns.push("published_at");}
+    if(data.status==="PUBLISHED" && !before?.published_at) {values.published_at=now;if(!columns.includes("published_at"))columns.push("published_at");}
     const placeholders=columns.map((_,i)=>`$${i+1}`);
     const after=(await query(`INSERT INTO ${kind} (${columns.join(",")}) VALUES (${placeholders.join(",")}) ON CONFLICT(id) DO UPDATE SET ${columns.filter(k=>k!=="id").map(k=>`${k}=excluded.${k}`).join(",")} RETURNING *`,columns.map(k=>values[k])))[0];
-    await audit(query,actor,before?"UPDATED":"CREATED",kind,entityId,before??null,after);
+    const action=before?.status!==after.status&&after.status==="PUBLISHED"?"PUBLISHED":before?.status==="PUBLISHED"&&after.status!=="PUBLISHED"?"UNPUBLISHED":before?"UPDATED":"CREATED";
+    await audit(query,actor,action,kind,entityId,before??null,after);
     return after;
   });
 }
