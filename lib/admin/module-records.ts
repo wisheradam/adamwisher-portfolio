@@ -6,7 +6,7 @@ import type { Query,Row } from "./db";
 export { isModule,modules };
 export class InputError extends Error{constructor(message:string,public status=400){super(message);}}
 const work=new Set<ModuleName>(["experience","education","certifications","releases","timeline"]);
-function safePath(value:string){return /^\/(?!\/)[a-zA-Z0-9/_-]*\/?$/.test(value)&&!(/^\/(admin|api\/admin|_next)(\/|$)/i.test(value));}
+function safePath(value:string){return /^\/(?!\/)[a-zA-Z0-9/_-]*\/?$/.test(value)&&!(/^\/(admin|api|projects|_next)(\/|$)/i.test(value));}
 export function validateModule(module:ModuleName,raw:unknown):Record<string,string|number|boolean|null>{
   if(!raw||typeof raw!=="object"||Array.isArray(raw))throw new InputError("Invalid record");
   const source=raw as Record<string,unknown>,result:Record<string,string|number|boolean|null>={};

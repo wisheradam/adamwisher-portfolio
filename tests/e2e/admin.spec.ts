@@ -189,3 +189,11 @@ test("public feature flags change Apps and Ask Adam behavior after explicit cuto
     finally{expect((await page.request.delete(`/api/admin/modules/feature-flags/${ask}`,{headers:{Origin:origin}})).status()).toBe(204);}
   }finally{expect((await page.request.delete(`/api/admin/modules/feature-flags/${apps}`,{headers:{Origin:origin}})).status()).toBe(204);}
 });
+
+test("managed SEO metadata and HTTP redirects run only in review cutover",async({page,request})=>{
+  await signIn(page);const origin=new URL(page.url()).origin,source=`/old-${slug()}`;
+  const seo=await page.request.post('/api/admin/modules/seo',{headers:{Origin:origin},data:{path:'/about',seo_title:'Review SEO Title',og_title:'Review OG Title',canonical_url:'https://adamwisher.com/about',indexable:false,followable:false}});expect(seo.status()).toBe(201);const seoId=(await seo.json()).id;
+  const redirect=await page.request.post('/api/admin/modules/redirects',{headers:{Origin:origin},data:{source_path:source,destination_path:'/about',status_code:'301',enabled:true}});expect(redirect.status()).toBe(201);const redirectId=(await redirect.json()).id;
+  try{const html=await (await request.get('/about')).text();expect(html).toContain('Review SEO Title');expect(html).toContain('Review OG Title');expect(html).toContain('noindex');const response=await request.get(source,{maxRedirects:0});expect(response.status()).toBe(301);expect(new URL(response.headers()['location']).pathname).toBe('/about');expect((await request.get('/admin/login',{maxRedirects:0})).status()).toBe(200);}
+  finally{await page.request.delete(`/api/admin/modules/redirects/${redirectId}`,{headers:{Origin:origin}});await page.request.delete(`/api/admin/modules/seo/${seoId}`,{headers:{Origin:origin}});}
+});

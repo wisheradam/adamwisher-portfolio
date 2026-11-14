@@ -7,7 +7,7 @@ import { spawn } from 'node:child_process';
 import { strict as assert } from 'node:assert';
 const temp=await mkdtemp(path.join(tmpdir(),'adam-security-')),port=34792,base=`http://127.0.0.1:${port}`;
 const password=randomBytes(18).toString('hex'),salt=randomBytes(16).toString('hex');
-const env={...process.env,ADMIN_DATABASE_DRIVER:'pglite',PUBLIC_CONTENT_SOURCE:'database',ADMIN_DB_PATH:path.join(temp,'db'),ADMIN_BOOTSTRAP_EMAIL:'owner@example.test',ADMIN_PASSWORD_HASH:`scrypt:${salt}:${scryptSync(password,salt,64).toString('hex')}`};
+const env={...process.env,ADMIN_DATABASE_DRIVER:'pglite',PUBLIC_CONTENT_SOURCE:'database',PUBLIC_REDIRECTS_ENABLED:'1',ADMIN_DB_PATH:path.join(temp,'db'),ADMIN_BOOTSTRAP_EMAIL:'owner@example.test',ADMIN_PASSWORD_HASH:`scrypt:${salt}:${scryptSync(password,salt,64).toString('hex')}`};
 let server;const req=(p,o={})=>fetch(base+p,o),json={'content-type':'application/json',origin:base};
 async function child(args){await new Promise((resolve,reject)=>{const p=spawn(process.execPath,args,{env,stdio:'ignore'});p.on('exit',c=>c===0?resolve():reject(new Error(`Child exited ${c}`)));});}
 async function start(){server=spawn(process.execPath,['node_modules/next/dist/bin/next','start','-H','127.0.0.1','-p',String(port)],{env,stdio:'ignore'});for(let n=0;n<100;n++){try{await req('/admin/login');return;}catch{await new Promise(r=>setTimeout(r,100));}}throw new Error('Server not ready');}
@@ -50,7 +50,13 @@ try{
    }
  }
  assert.equal((await req('/api/admin/modules/redirects',{method:'POST',headers:ownerHeaders,body:JSON.stringify({source_path:'/new-test',destination_path:'/old-test',status_code:'301',enabled:true})})).status,400);
+ const moved=await req('/old-test',{redirect:'manual'});assert.equal(moved.status,302);assert.equal(new URL(moved.headers.get('location')).pathname,'/new-test');
+ assert.equal((await req('/new-test',{redirect:'manual'})).status,404);
+ assert.equal((await req('/admin/login',{redirect:'manual'})).status,200);
+ assert.equal((await req('/api/admin/modules/redirects',{method:'POST',headers:ownerHeaders,body:JSON.stringify({source_path:'/bad',destination_path:'/admin',status_code:'301',enabled:true})})).status,400);
  assert.equal((await req('/api/admin/modules/seo',{method:'POST',headers:ownerHeaders,body:JSON.stringify({path:'/about',canonical_url:'https://other.example/about'})})).status,400);
+ const seo=await req('/api/admin/modules/seo',{method:'POST',headers:ownerHeaders,body:JSON.stringify({path:'/about',seo_title:'Managed About QA',meta_description:'Managed description QA',canonical_url:'https://adamwisher.com/about',og_title:'Managed OG QA',indexable:false,followable:false})});assert.equal(seo.status,201);
+ const aboutHtml=await (await req('/about')).text();assert.ok(aboutHtml.includes('Managed About QA'));assert.ok(aboutHtml.includes('Managed OG QA'));assert.ok(aboutHtml.includes('noindex'));
  assert.equal((await req('/apps/stage-five-app/changelog')).status,404);
  assert.equal((await req('/history')).status,404);
  assert.equal((await req('/api/admin/records/products/'+app.id,{method:'PATCH',headers:ownerHeaders,body:JSON.stringify({status:'PUBLISHED'})})).status,200);
