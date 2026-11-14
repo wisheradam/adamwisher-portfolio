@@ -15,7 +15,7 @@ test("admin session, invalid login, logout and anonymous API protection",async({
   const anonymous=await request.get("/api/admin/records/projects");expect(anonymous.status()).toBe(401);
   await page.goto("/admin");await expect(page).toHaveURL(/\/admin\/login$/);
   await page.getByLabel("Password").fill("invalid-credential");await page.getByRole("button",{name:"Sign in"}).click();
-  await expect(page.getByRole("alert")).toContainText("Sign in failed");
+  await expect(page.locator("form").getByRole("alert")).toContainText("Sign in failed");
   await signIn(page);await expect(page.getByRole("heading",{name:"Overview"})).toBeVisible();
   await page.getByRole("button",{name:"Sign out"}).click();await expect(page).toHaveURL(/\/admin\/login$/);
   await page.goto("/admin/projects");await expect(page).toHaveURL(/\/admin\/login$/);

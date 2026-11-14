@@ -40,8 +40,10 @@ jobs:
           const salt = randomBytes(16).toString('hex');
           const password = randomBytes(24).toString('hex');
           const secret = randomBytes(48).toString('hex');
+          const hash = `scrypt:${salt}:${scryptSync(password,salt,64).toString('hex')}`;
+          for (const value of [password, secret, hash]) console.log(`::add-mask::${value}`);
           fs.appendFileSync(process.env.GITHUB_ENV,
-            `ADMIN_DATABASE_DRIVER=pglite\nADMIN_DB_PATH=${process.env.RUNNER_TEMP}/admin-e2e-pg\nADMIN_TEST_PASSWORD=${password}\nADMIN_PASSWORD_HASH=scrypt:${salt}:${scryptSync(password,salt,64).toString('hex')}\nADMIN_SESSION_SECRET=${secret}\n`);
+            `ADMIN_DATABASE_DRIVER=pglite\nADMIN_DB_PATH=${process.env.RUNNER_TEMP}/admin-e2e-pg\nADMIN_TEST_PASSWORD=${password}\nADMIN_PASSWORD_HASH=${hash}\nADMIN_SESSION_SECRET=${secret}\n`);
           NODE
       - name: Migrate isolated browser database
         run: npm run admin:migrate
