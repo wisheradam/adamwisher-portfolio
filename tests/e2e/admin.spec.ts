@@ -143,10 +143,10 @@ test("login limits repeated failures without revealing account existence",async(
 test("structured Experience and Education records remain draft until explicit publication",async({page})=>{
   await signIn(page);const tag=slug();await page.goto("/admin/experience");
   await page.getByRole("button",{name:"New record"}).click();const form=page.locator("form.admin-editor");
-  await form.getByLabel("Company").fill(`Company ${tag}`);await form.getByLabel("Title").fill(`Role ${tag}`);
+  await form.getByLabel("Company",{exact:true}).fill(`Company ${tag}`);await form.getByLabel("Title",{exact:true}).fill(`Role ${tag}`);
   await form.getByRole("button",{name:"Save"}).click();await expect(page.getByRole("status")).toContainText("Saved successfully");
   await page.getByLabel("Search Experience").fill(tag);await expect(page.locator("tbody tr")).toHaveCount(1);
-  await page.getByRole("button",{name:"Edit"}).click();await expect(form.getByLabel("Company")).toHaveValue(`Company ${tag}`);
+  await page.getByRole("button",{name:"Edit"}).click();await expect(form.getByLabel("Company",{exact:true})).toHaveValue(`Company ${tag}`);
   await form.getByLabel("Status").selectOption("REVIEW");await form.getByRole("button",{name:"Save"}).click();
   await expect(page.getByRole("cell",{name:"REVIEW"})).toBeVisible();
   await page.goto("/admin/education");await page.getByRole("button",{name:"New record"}).click();
@@ -158,7 +158,7 @@ test("structured Experience and Education records remain draft until explicit pu
 test("media rejects unsupported files and keeps preview behind login",async({page,request})=>{
   await signIn(page);await page.goto("/admin/media");await expect(page.getByRole("heading",{name:"Media Library"})).toBeVisible();
   await page.getByLabel(/Upload PNG/).setInputFiles({name:"unsafe.svg",mimeType:"image/svg+xml",buffer:Buffer.from("<svg/>")});
-  await expect(page.getByRole("alert")).toContainText("Unsupported file type");
+  await expect(page.getByText("Unsupported file type",{exact:true})).toBeVisible();
   expect((await request.get("/api/admin/media")).status()).toBe(401);
 });
 
