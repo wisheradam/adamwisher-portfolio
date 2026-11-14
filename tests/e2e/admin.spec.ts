@@ -63,7 +63,7 @@ test("project draft, edit, preview, publish, search, unpublish and soft delete",
   page.once("dialog",dialog=>dialog.accept());await form.getByLabel("Status").selectOption("PUBLISHED");await form.getByRole("button",{name:"Publish"}).click();
   await expect(page.getByRole("cell",{name:"PUBLISHED"})).toBeVisible();
   const publicPage=await request.get(`/work/${projectSlug}`);expect(publicPage.status()).toBe(200);expect(await publicPage.text()).toContain("Edited summary");
-  await page.locator("tbody tr").filter({hasText:appSlug}).getByRole("button",{name:"Edit"}).click();await form.getByLabel("Status").selectOption("DRAFT");await form.getByRole("button",{name:"Save draft"}).click();
+  await page.locator("tbody tr").filter({hasText:projectSlug}).getByRole("button",{name:"Edit"}).click();await form.getByLabel("Status").selectOption("DRAFT");await form.getByRole("button",{name:"Save draft"}).click();
   expect((await request.get(`/work/${projectSlug}`)).status()).toBe(404);
   const rows=await page.request.get("/api/admin/records/projects?q="+projectSlug);const record=(await rows.json()).records[0];
   expect((await page.request.delete(`/api/admin/records/projects/${record.id}`,{headers:{Origin:new URL(page.url()).origin}})).status()).toBe(204);
