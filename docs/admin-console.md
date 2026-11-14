@@ -1,6 +1,6 @@
 # Admin Console — Stage 1 data layer
 
-The Admin Console is a draft at `/admin` on `feature/admin-console` (PR #8). **Do not merge or deploy yet.** Stage 1 replaces the filesystem SQLite runtime with PostgreSQL-compatible persistence. It does not provision or modify AWS resources. Stages 2 and 3 remain necessary before production: multi-user identity/RBAC and migration of the six source-controlled case studies.
+The Admin Console is a draft at `/admin` on `feature/admin-console`. PR #8 for the foundation was merged independently before this Stage 1 update; this follow-up must stay Draft. **Do not merge or deploy Stage 1 yet.** Stage 1 replaces the filesystem SQLite runtime with PostgreSQL-compatible persistence. It does not provision or modify AWS resources. Stages 2 and 3 remain necessary before production: multi-user identity/RBAC and migration of the six source-controlled case studies.
 
 ## Database choice
 
@@ -24,4 +24,4 @@ For Aurora, enable automated backups with retention appropriate to the site's re
 
 ## Remaining limitations
 
-Stage 1 has not connected to a live Aurora cluster, verified actual Amplify IAM/Data API permissions, or tested backup restoration. Existing SQLite preview records require the explicit local import command; a live Aurora import has not been exercised. The Admin still has one SUPER_ADMIN credential without revocable sessions or login rate limiting. Other navigation modules are placeholders; existing case studies have not been migrated. No media upload, contact inbox, or Ask Adam management is included. Keep PR #8 in Draft until these stages and browser validation pass.
+Stage 1 has not connected to a live Aurora cluster, verified actual Amplify IAM/Data API permissions, or tested backup restoration. Existing SQLite preview records require the explicit local import command; a live Aurora import has not been exercised. The Admin still has one SUPER_ADMIN credential without revocable sessions or login rate limiting. Other navigation modules are placeholders; existing case studies have not been migrated. No media upload, contact inbox, or Ask Adam management is included. Keep the Stage 1 follow-up PR in Draft until these stages and browser validation pass.
