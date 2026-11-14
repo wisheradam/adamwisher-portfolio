@@ -67,3 +67,7 @@ Run `npm run typecheck`, `npm run lint`, `npm run build`, `npm run test:admin-da
 - Media has no durable production object storage adapter; Aurora mode rejects it. The local adapter is for review only.
 - The Aurora Data API runtime and live Aurora backup/restore remain **BLOCKED — live Aurora environment unavailable**. No suitable RDS cluster was found in the connected account's eu-north-1 region; other accounts/regions were not inventoried.
 - Preview deployment is not configured. Stage 5 should remain a Draft PR; merging it would trigger Amplify production deployment from `main` and is not permitted for this review.
+
+## Stage 5.1 incremental cutover
+
+`PUBLIC_CONTENT_SOURCE=static` is the default. It preserves current public behavior and avoids public database reads. In an isolated review environment, set `PUBLIC_CONTENT_SOURCE=database` only after running migrations. The server then evaluates `show_apps` and `enable_ask_adam` flags from `feature_flags`; missing rows preserve the existing behavior. A configured database failure is surfaced rather than silently ignored. The Apps index returns 404 when disabled; the Ask Adam API returns 503 when disabled. Flags are not authorization controls. Other flags, factual content cutover, SEO overrides, redirects and production object storage remain incomplete. Never set this variable in production as a shortcut around migration and reconciliation.

@@ -176,3 +176,16 @@ test("capture review screenshots of the Admin console",async({page},testInfo)=>{
   await expect(page.locator(".site-footer")).toBeHidden();
   await page.screenshot({path:testInfo.outputPath("admin-media-mobile.png"),fullPage:true});
 });
+
+test("public feature flags change Apps and Ask Adam behavior after explicit cutover",async({page,request})=>{
+  await signIn(page);const origin=new URL(page.url()).origin;
+  const make=async(flag_key:string)=>{const response=await page.request.post('/api/admin/modules/feature-flags',{headers:{Origin:origin},data:{flag_key,description:flag_key,enabled:false}});expect(response.status()).toBe(201);return (await response.json()).id as string;};
+  const apps=await make('show_apps');
+  try{expect((await request.get('/apps')).status()).toBe(404);
+    const enabled=await page.request.patch(`/api/admin/modules/feature-flags/${apps}`,{headers:{Origin:origin},data:{enabled:true}});expect(enabled.status()).toBe(200);
+    expect((await request.get('/apps')).status()).toBe(200);
+    const ask=await make('enable_ask_adam');
+    try{expect((await request.post('/api/ask-adam',{data:{question:'Hello'}})).status()).toBe(503);}
+    finally{expect((await page.request.delete(`/api/admin/modules/feature-flags/${ask}`,{headers:{Origin:origin}})).status()).toBe(204);}
+  }finally{expect((await page.request.delete(`/api/admin/modules/feature-flags/${apps}`,{headers:{Origin:origin}})).status()).toBe(204);}
+});

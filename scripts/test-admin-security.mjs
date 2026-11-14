@@ -7,7 +7,7 @@ import { spawn } from 'node:child_process';
 import { strict as assert } from 'node:assert';
 const temp=await mkdtemp(path.join(tmpdir(),'adam-security-')),port=34792,base=`http://127.0.0.1:${port}`;
 const password=randomBytes(18).toString('hex'),salt=randomBytes(16).toString('hex');
-const env={...process.env,ADMIN_DATABASE_DRIVER:'pglite',ADMIN_DB_PATH:path.join(temp,'db'),ADMIN_BOOTSTRAP_EMAIL:'owner@example.test',ADMIN_PASSWORD_HASH:`scrypt:${salt}:${scryptSync(password,salt,64).toString('hex')}`};
+const env={...process.env,ADMIN_DATABASE_DRIVER:'pglite',PUBLIC_CONTENT_SOURCE:'database',ADMIN_DB_PATH:path.join(temp,'db'),ADMIN_BOOTSTRAP_EMAIL:'owner@example.test',ADMIN_PASSWORD_HASH:`scrypt:${salt}:${scryptSync(password,salt,64).toString('hex')}`};
 let server;const req=(p,o={})=>fetch(base+p,o),json={'content-type':'application/json',origin:base};
 async function child(args){await new Promise((resolve,reject)=>{const p=spawn(process.execPath,args,{env,stdio:'ignore'});p.on('exit',c=>c===0?resolve():reject(new Error(`Child exited ${c}`)));});}
 async function start(){server=spawn(process.execPath,['node_modules/next/dist/bin/next','start','-H','127.0.0.1','-p',String(port)],{env,stdio:'ignore'});for(let n=0;n<100;n++){try{await req('/admin/login');return;}catch{await new Promise(r=>setTimeout(r,100));}}throw new Error('Server not ready');}
@@ -51,6 +51,10 @@ try{
  }
  assert.equal((await req('/api/admin/modules/redirects',{method:'POST',headers:ownerHeaders,body:JSON.stringify({source_path:'/new-test',destination_path:'/old-test',status_code:'301',enabled:true})})).status,400);
  assert.equal((await req('/api/admin/modules/seo',{method:'POST',headers:ownerHeaders,body:JSON.stringify({path:'/about',canonical_url:'https://other.example/about'})})).status,400);
+ const flags=(await req('/api/admin/modules/feature-flags',{headers:{cookie:ownerCookie}}));const history=(await flags.json()).records.find(row=>row.flag_key==='show_history');assert.ok(history);
+ const disabledApp=await req('/api/admin/modules/feature-flags',{method:'POST',headers:ownerHeaders,body:JSON.stringify({flag_key:'show_apps',description:'Apps visibility',enabled:false})});assert.equal(disabledApp.status,201);const appFlag=await disabledApp.json();assert.equal((await req('/apps')).status,404);
+ assert.equal((await req(`/api/admin/modules/feature-flags/${appFlag.id}`,{method:'PATCH',headers:ownerHeaders,body:JSON.stringify({enabled:true})})).status,200);assert.equal((await req('/apps')).status,200);
+ const askFlag=await req('/api/admin/modules/feature-flags',{method:'POST',headers:ownerHeaders,body:JSON.stringify({flag_key:'enable_ask_adam',description:'Assistant',enabled:false})});assert.equal(askFlag.status,201);const ask=await req('/api/ask-adam',{method:'POST',headers:json,body:JSON.stringify({question:'Hello'})});assert.equal(ask.status,503);
  assert.equal((await req('/api/admin/modules/releases',{method:'POST',headers:ownerHeaders,body:JSON.stringify({title:'Broken',version:'1'})})).status,400);
  assert.equal((await req('/api/admin/modules/education',{method:'POST',headers:editorHeaders,body:JSON.stringify({institution:'No program'})})).status,400);
  const mediaInvalid=new FormData();mediaInvalid.set('file',new File(['<svg/>'],'picture.svg',{type:'image/svg+xml'}));
