@@ -139,3 +139,34 @@ test("login limits repeated failures without revealing account existence",async(
   for(let n=0;n<5;n++)expect((await request.post("/api/admin/login",{headers:{Origin:base},data:{email,password:"incorrect"}})).status()).toBe(401);
   expect((await request.post("/api/admin/login",{headers:{Origin:base},data:{email,password:"incorrect"}})).status()).toBe(429);
 });
+
+test("structured Experience and Education records remain draft until explicit publication",async({page})=>{
+  await signIn(page);const tag=slug();await page.goto("/admin/experience");
+  await page.getByRole("button",{name:"New record"}).click();const form=page.locator("form.admin-editor");
+  await form.getByLabel("Company").fill(`Company ${tag}`);await form.getByLabel("Title").fill(`Role ${tag}`);
+  await form.getByRole("button",{name:"Save"}).click();await expect(page.getByRole("status")).toContainText("Saved successfully");
+  await page.getByLabel("Search Experience").fill(tag);await expect(page.locator("tbody tr")).toHaveCount(1);
+  await page.getByRole("button",{name:"Edit"}).click();await expect(form.getByLabel("Company")).toHaveValue(`Company ${tag}`);
+  await form.getByLabel("Status").selectOption("REVIEW");await form.getByRole("button",{name:"Save"}).click();
+  await expect(page.getByRole("cell",{name:"REVIEW"})).toBeVisible();
+  await page.goto("/admin/education");await page.getByRole("button",{name:"New record"}).click();
+  await page.getByLabel("Institution").fill(`School ${tag}`);await page.getByLabel("Program").fill(`Program ${tag}`);
+  await page.locator("form.admin-editor").getByRole("button",{name:"Save"}).click();await expect(page.getByRole("status")).toContainText("Saved successfully");
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(1280);
+});
+
+test("media rejects unsupported files and keeps preview behind login",async({page,request})=>{
+  await signIn(page);await page.goto("/admin/media");await expect(page.getByRole("heading",{name:"Media Library"})).toBeVisible();
+  await page.getByLabel(/Upload PNG/).setInputFiles({name:"unsafe.svg",mimeType:"image/svg+xml",buffer:Buffer.from("<svg/>")});
+  await expect(page.getByRole("alert")).toContainText("Unsupported file type");
+  expect((await request.get("/api/admin/media")).status()).toBe(401);
+});
+
+test("capture review screenshots of the Admin console",async({page},testInfo)=>{
+  await page.setViewportSize({width:1440,height:900});await signIn(page);await page.goto("/admin/experience");
+  await expect(page.getByRole("heading",{name:"Experience"})).toBeVisible();
+  await page.screenshot({path:testInfo.outputPath("admin-experience-desktop.png"),fullPage:true});
+  await page.setViewportSize({width:390,height:844});await page.goto("/admin/media");
+  await expect(page.getByRole("heading",{name:"Media Library"})).toBeVisible();
+  await page.screenshot({path:testInfo.outputPath("admin-media-mobile.png"),fullPage:true});
+});

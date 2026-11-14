@@ -4,6 +4,10 @@ import Link from "next/link";
 import { can,type AdminRole } from "@/lib/admin/permissions";
 import { UsersPanel } from "./users-panel";
 import { AuditPanel } from "./audit-panel";
+import { isModule } from "@/lib/admin/module-config";
+import { ModulePanel } from "./module-panel";
+import { MediaPanel } from "./media-panel";
+import { SettingsPanel } from "./settings-panel";
 type RecordRow={id:string;slug:string;title:string;status:string;updated_at:string;summary:string;body?:string;type?:string;visibility:string};
 export function Console({section,role}:{section:string;role:AdminRole}) {
   const kind=section==="apps"?"products":"projects";
@@ -21,6 +25,9 @@ export function Console({section,role}:{section:string;role:AdminRole}) {
   }
   if(section==="users")return <UsersPanel/>;
   if(section==="audit-log")return <AuditPanel/>;
+  if(section==="media")return <MediaPanel role={role}/>;
+  if(section==="settings")return <SettingsPanel/>;
+  if(isModule(section))return <ModulePanel module={section} role={role}/>;
   if(!["projects","apps"].includes(section)) return <section className="admin-card"><h1>{section.replaceAll("-"," ")}</h1><p>This module is reserved for the next implementation phase. No public content is changed here.</p></section>;
   return <section><div className="admin-heading"><div><h1>{section==="apps"?"Apps & Tools":"Projects"}</h1><p>Drafts stay private until explicitly published.</p></div>{can(role,"content.edit")&&<button onClick={()=>edit()}>New {kind==="projects"?"project":"app"}</button>}</div>
     <label htmlFor="record-search">Search</label><input id="record-search" value={search} onChange={e=>{setSearch(e.target.value);setPage(0)}} placeholder="Title or slug" />

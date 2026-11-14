@@ -12,5 +12,6 @@
 .admin-main input,.admin-main textarea,.admin-main select,.admin-login input{display:block;width:100%;border:1px solid #8392aa;border-radius:8px;background:#fff;color:#202936;padding:10px;margin:6px 0 16px}
 .admin-table{overflow:auto;margin-top:18px}.admin-table table{width:100%;border-collapse:collapse;text-align:left}.admin-table th,.admin-table td{padding:12px;border-bottom:1px solid #dce3ed}.admin-table small{display:block;color:#657185}
 .admin-pages{display:flex;align-items:center;gap:16px;margin:16px 0}.admin-editor{max-width:700px;margin-top:20px}.admin-editor textarea{min-height:100px}
+.admin-editor input[type=checkbox]{width:auto;display:inline-block;margin:8px 12px;min-width:20px;min-height:20px}.admin-main :focus-visible,.admin-nav :focus-visible{outline:3px solid #1455b7;outline-offset:2px}.admin-main button:disabled{opacity:.5;cursor:not-allowed}
 .admin-login{min-height:100vh;display:grid;place-items:center;padding:20px}.admin-login form{width:min(100%,420px)}
 @media(max-width:800px){.admin-shell{display:block}.admin-nav{position:static;max-height:none;flex-direction:row;overflow-x:auto;white-space:nowrap}.admin-brand span{display:none}.admin-main{padding:20px}.admin-stats{grid-template-columns:1fr}}

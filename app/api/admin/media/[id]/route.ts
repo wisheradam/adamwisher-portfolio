@@ -1,0 +1,10 @@
+import { NextRequest,NextResponse } from "next/server";
+import { requirePermission,AdminAccessError,safeMutation } from "@/lib/admin/auth";
+import { getMedia,mediaUsage,saveMedia,editMedia,deleteMedia,MediaError } from "@/lib/admin/media";
+export const runtime="nodejs";
+type Context={params:Promise<{id:string}>};
+const fail=(e:unknown)=>NextResponse.json({error:e instanceof MediaError||e instanceof AdminAccessError?e.message:"Media operation failed"},{status:e instanceof MediaError||e instanceof AdminAccessError?e.status:500});
+export async function GET(_:NextRequest,{params}:Context){try{await requirePermission("content.view");const id=(await params).id,row=await getMedia(id);return row?NextResponse.json({...row,usage:await mediaUsage(id)}):NextResponse.json({error:"Not found"},{status:404});}catch(e){return fail(e);}}
+export async function PATCH(request:NextRequest,{params}:Context){try{const actor=await requirePermission("media.upload");if(!await safeMutation())return NextResponse.json({error:"Forbidden"},{status:403});return NextResponse.json(await editMedia((await params).id,actor.id,await request.json()));}catch(e){return fail(e);}}
+export async function PUT(request:NextRequest,{params}:Context){try{const actor=await requirePermission("media.upload");if(!await safeMutation())return NextResponse.json({error:"Forbidden"},{status:403});if(Number(request.headers.get("content-length"))>11*1024*1024)return NextResponse.json({error:"File too large"},{status:413});const file=(await request.formData()).get("file");if(!(file instanceof File))throw new MediaError("Select a file");return NextResponse.json(await saveMedia(file,actor.id,(await params).id));}catch(e){return fail(e);}}
+export async function DELETE(_:NextRequest,{params}:Context){try{const actor=await requirePermission("media.delete");if(!await safeMutation())return NextResponse.json({error:"Forbidden"},{status:403});await deleteMedia((await params).id,actor.id);return new NextResponse(null,{status:204});}catch(e){return fail(e);}}

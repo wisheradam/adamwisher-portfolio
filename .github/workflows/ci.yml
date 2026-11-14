@@ -53,6 +53,13 @@ jobs:
         run: npm run admin:bootstrap
       - name: Browser regressions
         run: npm run test:e2e
+      - name: Upload Admin review screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: admin-review-screenshots
+          path: test-results/**/admin-*.png
+          if-no-files-found: ignore
       - name: Upload browser evidence on failure
         if: failure()
         uses: actions/upload-artifact@v4

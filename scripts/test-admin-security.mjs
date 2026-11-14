@@ -35,6 +35,35 @@ try{
  assert.equal((await req('/admin/preview/'+record.id,{headers:{cookie:editorCookie}})).status,200);
  const appDraft=await req('/api/admin/records/products',{method:'POST',headers:editorHeaders,body:JSON.stringify({slug:'stage-five-app',title:'Stage Five App',type:'WEB_APP',status:'DRAFT',visibility:'PUBLIC'})});assert.equal(appDraft.status,201);const app=await appDraft.json();
  assert.equal((await req('/apps/stage-five-app')).status,404);
+ const examples={experience:{company:'Test Company',title:'Test Role'},education:{institution:'Test University',program:'Test Program'},certifications:{title:'Test Course',issuer:'Test Provider'},releases:{title:'Test Release',version:'0.1',product_id:app.id},timeline:{title:'Test Milestone',event_type:'MILESTONE',event_date:'2026-01-01'},seo:{path:'/contact',seo_title:'Contact page'},redirects:{source_path:'/old-test',destination_path:'/new-test',status_code:'302',enabled:true},'feature-flags':{flag_key:'show_history',description:'History',enabled:false}};
+ for(const [module,input] of Object.entries(examples)){
+   const url=`/api/admin/modules/${module}`,restricted=['redirects','feature-flags'].includes(module),headers=restricted?ownerHeaders:editorHeaders;
+   assert.equal((await req(url,{headers:{cookie:editorCookie}})).status,restricted?403:200);
+   assert.equal((await req(url,{method:'POST',headers:viewerHeaders,body:JSON.stringify(input)})).status,403);
+   const made=await req(url,{method:'POST',headers,body:JSON.stringify(input)});assert.equal(made.status,201,`${module}: ${await made.clone().text()}`);const row=await made.json();
+   assert.equal((await req(`${url}/${row.id}`,{headers:{cookie:viewerCookie}})).status,restricted?403:200);
+   const updated=await req(`${url}/${row.id}`,{method:'PATCH',headers,body:JSON.stringify(module==='feature-flags'?{enabled:true}:module==='redirects'?{notes:'Checked'}:{[Object.keys(input)[0]]:Object.values(input)[0]})});assert.equal(updated.status,200,`${module}: ${await updated.clone().text()}`);
+   if(['experience','education','certifications','releases','timeline'].includes(module))assert.equal((await req(`${url}/${row.id}`,{method:'PATCH',headers:editorHeaders,body:JSON.stringify({status:'PUBLISHED',visibility:'PUBLIC'})})).status,403);
+   if(['experience','education','certifications','releases','timeline'].includes(module)){
+     const published=await req(`${url}/${row.id}`,{method:'PATCH',headers:ownerHeaders,body:JSON.stringify({status:'PUBLISHED',visibility:'PUBLIC'})});assert.equal(published.status,200,await published.clone().text());assert.ok((await published.json()).published_at);
+     const unpublished=await req(`${url}/${row.id}`,{method:'PATCH',headers:ownerHeaders,body:JSON.stringify({status:'DRAFT'})});assert.equal(unpublished.status,200);assert.equal((await unpublished.json()).published_at,null);
+   }
+ }
+ assert.equal((await req('/api/admin/modules/redirects',{method:'POST',headers:ownerHeaders,body:JSON.stringify({source_path:'/new-test',destination_path:'/old-test',status_code:'301',enabled:true})})).status,400);
+ assert.equal((await req('/api/admin/modules/seo',{method:'POST',headers:ownerHeaders,body:JSON.stringify({path:'/about',canonical_url:'https://other.example/about'})})).status,400);
+ assert.equal((await req('/api/admin/modules/releases',{method:'POST',headers:ownerHeaders,body:JSON.stringify({title:'Broken',version:'1'})})).status,400);
+ assert.equal((await req('/api/admin/modules/education',{method:'POST',headers:editorHeaders,body:JSON.stringify({institution:'No program'})})).status,400);
+ const mediaInvalid=new FormData();mediaInvalid.set('file',new File(['<svg/>'],'picture.svg',{type:'image/svg+xml'}));
+ assert.equal((await req('/api/admin/media',{method:'POST',headers:{origin:base,cookie:editorCookie},body:mediaInvalid})).status,400);
+ assert.equal((await req('/api/admin/media',{method:'POST',headers:{origin:base,cookie:viewerCookie},body:mediaInvalid})).status,403);
+ const png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScL/nwAAAABJRU5ErkJggg==','base64');
+ const valid=new FormData();valid.set('file',new File([png],'pixel.png',{type:'image/png'}));
+ const uploaded=await req('/api/admin/media',{method:'POST',headers:{origin:base,cookie:editorCookie},body:valid});assert.equal(uploaded.status,201,await uploaded.clone().text());const asset=await uploaded.json();
+ assert.equal((await req(`/api/admin/media/${asset.id}/file`,{headers:{cookie:editorCookie}})).status,200);
+ assert.equal((await req(`/api/admin/media/${asset.id}/file`)).status,401);
+ const editMedia=await req(`/api/admin/media/${asset.id}`,{method:'PATCH',headers:editorHeaders,body:JSON.stringify({alt_text:'Single pixel'})});assert.equal(editMedia.status,200);
+ const reference=await req('/api/admin/modules/experience',{method:'POST',headers:editorHeaders,body:JSON.stringify({company:'Media Company',title:'Media Role',company_logo_media_id:asset.id})});assert.equal(reference.status,201,await reference.clone().text());
+ assert.equal((await req(`/api/admin/media/${asset.id}`,{method:'DELETE',headers:ownerHeaders})).status,409);
  assert.equal((await req('/admin/preview/apps/'+app.id,{headers:{cookie:editorCookie}})).status,200);
  assert.equal((await req('/admin/preview/apps/'+app.id,{headers:{cookie:viewerCookie},redirect:'manual'})).status,404);
  assert.equal((await req('/api/admin/records/products/'+app.id,{method:'PATCH',headers:editorHeaders,body:JSON.stringify({status:'PUBLISHED'})})).status,403);
@@ -49,7 +78,13 @@ try{
  assert.equal((await req('/api/admin/records/projects',{headers:{cookie:viewerCookie}})).status,401);
  for(let n=0;n<5;n++)assert.equal((await login('target@example.test','wrong')).status,401);
  assert.equal((await login('target@example.test','wrong')).status,429);
- assert.equal((await req('/api/admin/logout',{method:'POST',headers:ownerHeaders})).status,200);
+ const changed=randomBytes(18).toString('hex');
+ assert.equal((await req('/api/admin/password',{method:'POST',headers:ownerHeaders,body:JSON.stringify({currentPassword:'wrong',newPassword:changed})})).status,403);
+ assert.equal((await req('/api/admin/password',{method:'POST',headers:ownerHeaders,body:JSON.stringify({currentPassword:password,newPassword:changed})})).status,200);
  assert.equal((await req('/api/admin/users',{headers:{cookie:ownerCookie}})).status,401);
+ assert.equal((await login('owner@example.test',password)).status,401);
+ const renewed=await login('owner@example.test',changed);assert.equal(renewed.status,200);const newOwnerCookie=renewed.headers.get('set-cookie').split(';')[0];
+ assert.equal((await req('/api/admin/logout',{method:'POST',headers:{...json,cookie:newOwnerCookie}})).status,200);
+ assert.equal((await req('/api/admin/users',{headers:{cookie:newOwnerCookie}})).status,401);
  console.log('Admin security integration passed: roles, API boundaries, last admin, deactivation, revocation, rate limit');
 }finally{await stop();await rm(temp,{recursive:true,force:true});}
