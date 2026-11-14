@@ -10,14 +10,18 @@
     "hash:projects-password": "node scripts/hash-projects-password.mjs",
     "validate:ask-adam": "node scripts/validate-ask-adam.mjs",
     "typecheck": "tsc --noEmit",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "admin:migrate": "node scripts/admin-migrate.mjs",
+    "test:admin-data": "node scripts/test-admin-data.mjs",
+    "admin:import-sqlite": "node scripts/admin-import-sqlite.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.1163.0",
+    "@aws-sdk/client-rds-data": "^3.1169.0",
     "@aws-sdk/client-sesv2": "^3.1163.0",
+    "@electric-sql/pglite": "^0.5.16",
     "@splinetool/react-spline": "^3.1.1",
     "@splinetool/runtime": "^1.12.98",
-    "better-sqlite3": "^13.1.1",
     "clsx": "^2.1.1",
     "framer-motion": "^11.11.9",
     "lucide-react": "^0.451.0",
@@ -29,7 +33,6 @@
   "devDependencies": {
     "@axe-core/playwright": "^4.14.0",
     "@playwright/test": "^1.65.0",
-    "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^20.16.11",
     "@types/react": "^19.1.12",
     "@types/react-dom": "^19.1.9",

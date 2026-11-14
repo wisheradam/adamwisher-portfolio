@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { db } from "./db";
+import { store, type Query } from "./db";
 
 export type Kind = "projects" | "products";
 export const kinds: Kind[] = ["projects", "products"];
@@ -38,31 +38,38 @@ export function validate(kind: Kind, raw: unknown): Record<string, string | numb
   }
   return output;
 }
-export function list(kind: Kind, search: string, offset: number) {
-  return db().prepare(`SELECT * FROM ${kind} WHERE deleted_at IS NULL AND (title LIKE ? OR slug LIKE ?) ORDER BY updated_at DESC LIMIT 25 OFFSET ?`).all(`%${search}%`,`%${search}%`,offset);
+export async function list(kind: Kind, search: string, offset: number) {
+  const columns = kind === "products" ? "id,slug,title,summary,status,visibility,updated_at,type" : "id,slug,title,summary,status,visibility,updated_at";
+  return store.query(`SELECT ${columns} FROM ${kind} WHERE deleted_at IS NULL AND (title ILIKE $1 OR slug ILIKE $1) ORDER BY updated_at DESC LIMIT 25 OFFSET $2`, [`%${search}%`,offset]);
 }
-export function get(kind: Kind, id: string) {
-  return db().prepare(`SELECT * FROM ${kind} WHERE id=? AND deleted_at IS NULL`).get(id) as Record<string, unknown> | undefined;
+export async function get(kind: Kind, id: string) {
+  return (await store.query(`SELECT * FROM ${kind} WHERE id=$1 AND deleted_at IS NULL`,[id]))[0];
 }
-export function write(kind: Kind, data: Record<string,string|number|null>, actor: string, id?: string) {
-  const database = db(); const now = new Date().toISOString();
-  return database.transaction(() => {
-    const before = id ? get(kind,id) : undefined;
+export async function write(kind: Kind, data: Record<string,string|number|null>, actor: string, id?: string) {
+  const now = new Date().toISOString();
+  return store.transaction(async query => {
+    const before = id ? (await query(`SELECT * FROM ${kind} WHERE id=$1 AND deleted_at IS NULL FOR UPDATE`,[id]))[0] : undefined;
     if (id && !before) throw new Error("Not found");
     const entityId = id ?? randomUUID();
-    const values: Record<string, unknown> = { ...(before ?? {}), ...data, id: entityId, created_at: before?.created_at ?? now, updated_at: now, updated_by: actor };
+    const values: Record<string, string|number|boolean|null> = { ...(before ?? {}), ...data, id: entityId, created_at: before?.created_at ?? now, updated_at: now, updated_by: actor };
     if (!values.slug || !values.title || (kind === "products" && !values.type)) throw new Error("Slug, title and type are required");
-    const columns = Object.keys(values).filter(k => ["id","created_at","updated_at","updated_by",...fields[kind]].includes(k));
-    database.prepare(`INSERT INTO ${kind} (${columns.join(",")}) VALUES (${columns.map(()=>"?").join(",")}) ON CONFLICT(id) DO UPDATE SET ${columns.filter(k=>k!=="id").map(k=>`${k}=excluded.${k}`).join(",")}`).run(...columns.map(k=>values[k]));
-    if (kind === "projects" && data.status === "PUBLISHED") database.prepare("UPDATE projects SET published_at=COALESCE(published_at,?) WHERE id=?").run(now,entityId);
-    database.prepare("INSERT INTO audit_events VALUES (?,?,?,?,?,?,?,?)").run(randomUUID(),actor,before?"UPDATED":"CREATED",kind,entityId,JSON.stringify(before ?? null),JSON.stringify(get(kind,entityId)),now);
-    return get(kind,entityId);
-  })();
+    const columns = Object.keys(values).filter(k => ["id","created_at","updated_at","updated_by","published_at",...fields[kind]].includes(k));
+    if(kind==="projects" && data.status==="PUBLISHED" && !before?.published_at) {values.published_at=now;if(!columns.includes("published_at"))columns.push("published_at");}
+    const placeholders=columns.map((_,i)=>`$${i+1}`);
+    const after=(await query(`INSERT INTO ${kind} (${columns.join(",")}) VALUES (${placeholders.join(",")}) ON CONFLICT(id) DO UPDATE SET ${columns.filter(k=>k!=="id").map(k=>`${k}=excluded.${k}`).join(",")} RETURNING *`,columns.map(k=>values[k])))[0];
+    await audit(query,actor,before?"UPDATED":"CREATED",kind,entityId,before??null,after);
+    return after;
+  });
 }
-export function remove(kind: Kind, id: string, actor: string) {
-  const database=db(); const before=get(kind,id); if (!before) return false;
-  database.transaction(() => {
-    database.prepare(`UPDATE ${kind} SET deleted_at=?, updated_at=?, updated_by=? WHERE id=?`).run(new Date().toISOString(),new Date().toISOString(),actor,id);
-    database.prepare("INSERT INTO audit_events VALUES (?,?,?,?,?,?,?,?)").run(randomUUID(),actor,"SOFT_DELETED",kind,id,JSON.stringify(before),null,new Date().toISOString());
-  })(); return true;
+async function audit(query:Query,actor:string,action:string,kind:Kind,id:string,before:unknown,after:unknown) {
+  await query("INSERT INTO audit_events (id,actor_id,action,entity_type,entity_id,before_state,after_state,created_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)",
+    [randomUUID(),actor,action,kind,id,JSON.stringify(before),JSON.stringify(after),new Date().toISOString()]);
+}
+export async function remove(kind: Kind, id: string, actor: string) {
+  return store.transaction(async query=>{
+    const before=(await query(`SELECT * FROM ${kind} WHERE id=$1 AND deleted_at IS NULL FOR UPDATE`,[id]))[0];if(!before)return false;
+    const now=new Date().toISOString();
+    await query(`UPDATE ${kind} SET deleted_at=$1, updated_at=$1, updated_by=$2 WHERE id=$3`,[now,actor,id]);
+    await audit(query,actor,"SOFT_DELETED",kind,id,before,null);return true;
+  });
 }
