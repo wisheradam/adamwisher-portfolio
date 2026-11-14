@@ -63,7 +63,7 @@ test("project draft, edit, preview, publish, search, unpublish and soft delete",
   page.once("dialog",dialog=>dialog.accept());await form.getByLabel("Status").selectOption("PUBLISHED");await form.getByRole("button",{name:"Publish"}).click();
   await expect(page.getByRole("cell",{name:"PUBLISHED"})).toBeVisible();
   const publicPage=await request.get(`/work/${projectSlug}`);expect(publicPage.status()).toBe(200);expect(await publicPage.text()).toContain("Edited summary");
-  await page.getByRole("button",{name:"Edit"}).click();await form.getByLabel("Status").selectOption("DRAFT");await form.getByRole("button",{name:"Save draft"}).click();
+  await page.locator("tbody tr").filter({hasText:appSlug}).getByRole("button",{name:"Edit"}).click();await form.getByLabel("Status").selectOption("DRAFT");await form.getByRole("button",{name:"Save draft"}).click();
   expect((await request.get(`/work/${projectSlug}`)).status()).toBe(404);
   const rows=await page.request.get("/api/admin/records/projects?q="+projectSlug);const record=(await rows.json()).records[0];
   expect((await page.request.delete(`/api/admin/records/projects/${record.id}`,{headers:{Origin:new URL(page.url()).origin}})).status()).toBe(204);
@@ -126,8 +126,8 @@ test("Apps Draft, Preview, Publish and Unpublish are server enforced",async({pag
   await signIn(page);const appSlug=slug();await page.goto("/admin/apps");await page.getByRole("button",{name:"New app"}).click();const form=page.locator("form.admin-editor");
   await form.getByLabel("Title").fill("Stage Five App");await form.getByLabel("Slug").fill(appSlug);await form.getByLabel("Type").selectOption("WEB_APP");await form.getByLabel("Visibility").selectOption("PUBLIC");await form.getByRole("button",{name:"Save draft"}).click();
   expect((await request.get(`/apps/${appSlug}`)).status()).toBe(404);
-  await page.getByLabel("Search").fill(appSlug);await page.getByRole("link",{name:"Preview"}).click();await expect(page.getByRole("heading",{name:"Stage Five App"})).toBeVisible();
-  await page.goBack();await page.getByLabel("Search").fill(appSlug);await page.getByRole("button",{name:"Edit"}).click();
+  await page.getByLabel("Search").fill(appSlug);const row=page.locator("tbody tr").filter({hasText:appSlug});await expect(row).toHaveCount(1);await row.getByRole("link",{name:"Preview"}).click();await expect(page.getByRole("heading",{name:"Stage Five App"})).toBeVisible();
+  await page.goBack();await page.getByLabel("Search").fill(appSlug);const matchingRow=page.locator("tbody tr").filter({hasText:appSlug});await expect(matchingRow).toHaveCount(1);await matchingRow.getByRole("button",{name:"Edit"}).click();
   page.once("dialog",dialog=>dialog.accept());await form.getByLabel("Status").selectOption("PUBLISHED");await form.getByRole("button",{name:"Publish"}).click();
   expect((await request.get(`/apps/${appSlug}`)).status()).toBe(200);
   await page.getByRole("button",{name:"Edit"}).click();await form.getByLabel("Status").selectOption("DRAFT");await form.getByRole("button",{name:"Save draft"}).click();
