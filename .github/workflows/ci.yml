@@ -30,6 +30,8 @@ jobs:
         run: npm run build
       - name: Admin data integration
         run: npm run test:admin-data
+      - name: Knowledge import and reconciliation
+        run: npm run test:admin-knowledge
       - name: Admin security integration
         run: npm run test:admin-security
       - name: Install pinned Playwright Chromium and OS dependencies

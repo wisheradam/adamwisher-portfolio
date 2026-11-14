@@ -15,7 +15,9 @@
     "test:admin-data": "node scripts/test-admin-data.mjs",
     "admin:import-sqlite": "node scripts/admin-import-sqlite.mjs",
     "admin:bootstrap": "node scripts/admin-bootstrap.mjs",
-    "test:admin-security": "node scripts/test-admin-security.mjs"
+    "test:admin-security": "node scripts/test-admin-security.mjs",
+    "admin:import-knowledge": "node scripts/admin-import-knowledge.mjs",
+    "test:admin-knowledge": "node scripts/test-admin-knowledge.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.1163.0",
