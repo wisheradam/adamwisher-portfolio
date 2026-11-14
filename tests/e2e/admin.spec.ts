@@ -150,7 +150,7 @@ test("structured Experience and Education records remain draft until explicit pu
   await form.getByLabel("Status").selectOption("REVIEW");await form.getByRole("button",{name:"Save"}).click();
   await expect(page.getByRole("cell",{name:"REVIEW"})).toBeVisible();
   await page.goto("/admin/education");await page.getByRole("button",{name:"New record"}).click();
-  await page.getByLabel("Institution").fill(`School ${tag}`);await page.getByLabel("Program").fill(`Program ${tag}`);
+  await page.getByLabel("Institution",{exact:true}).fill(`School ${tag}`);await page.getByLabel("Program",{exact:true}).fill(`Program ${tag}`);
   await page.locator("form.admin-editor").getByRole("button",{name:"Save"}).click();await expect(page.getByRole("status")).toContainText("Saved successfully");
   expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(1280);
 });
@@ -165,8 +165,14 @@ test("media rejects unsupported files and keeps preview behind login",async({pag
 test("capture review screenshots of the Admin console",async({page},testInfo)=>{
   await page.setViewportSize({width:1440,height:900});await signIn(page);await page.goto("/admin/experience");
   await expect(page.getByRole("heading",{name:"Experience"})).toBeVisible();
+  await expect(page.locator(".site-footer")).toBeHidden();
   await page.screenshot({path:testInfo.outputPath("admin-experience-desktop.png"),fullPage:true});
+  await page.evaluate(()=>localStorage.setItem("adam-theme","dark"));await page.reload();
+  expect(await page.locator(".admin-card").first().evaluate(el=>getComputedStyle(el).backgroundColor)).toBe("rgb(36, 50, 68)");
+  await page.screenshot({path:testInfo.outputPath("admin-experience-dark.png"),fullPage:true});
+  await page.evaluate(()=>localStorage.setItem("adam-theme","light"));await page.reload();
   await page.setViewportSize({width:390,height:844});await page.goto("/admin/media");
   await expect(page.getByRole("heading",{name:"Media Library"})).toBeVisible();
+  await expect(page.locator(".site-footer")).toBeHidden();
   await page.screenshot({path:testInfo.outputPath("admin-media-mobile.png"),fullPage:true});
 });
