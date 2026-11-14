@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
+import { createHmac } from "node:crypto";
 
 const password = process.env.ADMIN_TEST_PASSWORD;
 if (!password) throw new Error("Set ADMIN_TEST_PASSWORD to the credential configured for the isolated test server");
@@ -25,9 +26,28 @@ test("invalid and expired admin sessions cannot access content",async({page})=>{
   await page.context().addCookies([{name:"adam_admin_session",value:"invalid",domain:"127.0.0.1",path:"/"}]);
   await page.goto("/admin/projects");await expect(page).toHaveURL(/\/admin\/login$/);
   const denied=await page.request.get("/api/admin/records/projects");expect(denied.status()).toBe(401);
+  const secret=process.env.ADMIN_SESSION_SECRET;
+  if(!secret) throw new Error("Admin test session secret is required");
+  const body="v1.super-admin.1";
+  const expired=`${body}.${createHmac("sha256",secret).update(body).digest("hex")}`;
+  await page.context().addCookies([{name:"adam_admin_session",value:expired,domain:"127.0.0.1",path:"/"}]);
+  await page.goto("/admin/projects");await expect(page).toHaveURL(/\/admin\/login$/);
+  expect((await page.request.get("/api/admin/records/projects")).status()).toBe(401);
   await signIn(page);
   await page.context().clearCookies();
   await page.goto("/admin/preview/nonexistent");await expect(page).toHaveURL(/\/admin\/login$/);
+});
+
+test("admin search and pagination remain usable with growing records",async({page})=>{
+  await signIn(page);const prefix=slug();const origin=new URL(page.url()).origin;
+  for(let n=0;n<26;n++) {
+    const response=await page.request.post("/api/admin/records/products",{headers:{Origin:origin},data:{slug:`${prefix}-${n}`,title:`Pagination ${prefix} ${n}`,type:"WEB_APP",status:"CONCEPT"}});
+    expect(response.status()).toBe(201);
+  }
+  await page.goto("/admin/apps");await page.getByLabel("Search").fill(prefix);
+  await expect(page.locator("tbody tr")).toHaveCount(25);
+  await page.getByRole("button",{name:"Next"}).click();await expect(page.locator("tbody tr")).toHaveCount(1);
+  await page.getByRole("button",{name:"Previous"}).click();await expect(page.locator("tbody tr")).toHaveCount(25);
 });
 
 test("project draft, edit, preview, publish, search, unpublish and soft delete",async({page,request})=>{
