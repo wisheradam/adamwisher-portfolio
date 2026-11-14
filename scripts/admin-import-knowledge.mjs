@@ -30,6 +30,7 @@ try{
  });
  let differences=0;
  for(const spec of specifications){for(const record of spec.records.filter(r=>r.public)){const row=(await db.query(`SELECT * FROM ${spec.table} WHERE id=$1`,[uuid(record.id)])).rows[0];if(!row){differences++;continue;}if(!row.updated_by||row.updated_by===actor){const fields=spec.fields(record);if(Object.entries(fields).some(([key,value])=>row[key]!==value))differences++;}}}
- console.log(JSON.stringify({report,differences,cutoverReady:differences===0},null,2));
+ const fingerprint=createHash('sha256').update(specifications.flatMap(s=>s.records.filter(r=>r.public).map(r=>r.id)).join('\n')).digest('hex');
+ console.log(JSON.stringify({report,differences,cutoverReady:differences===0,fingerprint},null,2));
  if(differences)process.exitCode=1;
 }finally{await db.close();}

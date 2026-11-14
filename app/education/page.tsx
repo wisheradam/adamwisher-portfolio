@@ -2,11 +2,10 @@ import { CourseRow } from "@/components/education/course-row";
 import { SiteHeader } from "@/components/site-header";
 import type { Metadata } from "next";
 import {
-  education,
   yandexProgram,
   economicsProgram,
 } from "@/data/knowledge/education";
-import { certifications } from "@/data/knowledge/certifications";
+import { publicKnowledge } from "@/lib/admin/public-knowledge";
 import type { KnowledgeRecord } from "@/data/knowledge/types";
 
 export const metadata: Metadata = {
@@ -56,10 +55,11 @@ const topics = [
   "Leadership & Communication",
 ];
 
-export default function EducationPage() {
-  const studies = education.filter((record) => record.public);
-  const courses = certifications
-    .filter((record) => record.public)
+export const dynamic="force-dynamic";
+export const runtime="nodejs";
+export default async function EducationPage() {
+  const studies = await publicKnowledge("education");
+  const courses = (await publicKnowledge("certifications"))
     .sort((a, b) => (b.period?.to ?? "").localeCompare(a.period?.to ?? ""));
 
   return (

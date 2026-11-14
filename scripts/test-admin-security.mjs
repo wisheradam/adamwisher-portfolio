@@ -51,6 +51,17 @@ try{
  }
  assert.equal((await req('/api/admin/modules/redirects',{method:'POST',headers:ownerHeaders,body:JSON.stringify({source_path:'/new-test',destination_path:'/old-test',status_code:'301',enabled:true})})).status,400);
  assert.equal((await req('/api/admin/modules/seo',{method:'POST',headers:ownerHeaders,body:JSON.stringify({path:'/about',canonical_url:'https://other.example/about'})})).status,400);
+ assert.equal((await req('/apps/stage-five-app/changelog')).status,404);
+ assert.equal((await req('/history')).status,404);
+ assert.equal((await req('/api/admin/records/products/'+app.id,{method:'PATCH',headers:ownerHeaders,body:JSON.stringify({status:'PUBLISHED'})})).status,200);
+ const release=await req('/api/admin/modules/releases',{method:'POST',headers:ownerHeaders,body:JSON.stringify({title:'Isolated QA Release',version:'1.0',product_id:app.id,status:'PUBLISHED',visibility:'PUBLIC'})});assert.equal(release.status,201);
+ assert.equal((await req('/apps/stage-five-app/changelog')).status,200);
+ assert.equal((await req('/api/admin/modules/releases/'+(await release.json()).id,{method:'PATCH',headers:ownerHeaders,body:JSON.stringify({status:'DRAFT'})})).status,200);
+ assert.equal((await req('/apps/stage-five-app/changelog')).status,404);
+ const event=await req('/api/admin/modules/timeline',{method:'POST',headers:ownerHeaders,body:JSON.stringify({title:'Isolated QA Milestone',event_type:'MILESTONE',event_date:'2026-01-01',status:'PUBLISHED',visibility:'PUBLIC'})});assert.equal(event.status,201);
+ assert.equal((await req('/history')).status,200);
+ assert.equal((await req('/api/admin/modules/timeline/'+(await event.json()).id,{method:'PATCH',headers:ownerHeaders,body:JSON.stringify({status:'DRAFT'})})).status,200);
+ assert.equal((await req('/history')).status,404);
  const flags=(await req('/api/admin/modules/feature-flags',{headers:{cookie:ownerCookie}}));const history=(await flags.json()).records.find(row=>row.flag_key==='show_history');assert.ok(history);
  const disabledApp=await req('/api/admin/modules/feature-flags',{method:'POST',headers:ownerHeaders,body:JSON.stringify({flag_key:'show_apps',description:'Apps visibility',enabled:false})});assert.equal(disabledApp.status,201);const appFlag=await disabledApp.json();assert.equal((await req('/apps')).status,404);
  assert.equal((await req(`/api/admin/modules/feature-flags/${appFlag.id}`,{method:'PATCH',headers:ownerHeaders,body:JSON.stringify({enabled:true})})).status,200);assert.equal((await req('/apps')).status,200);

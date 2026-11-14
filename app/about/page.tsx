@@ -1,5 +1,6 @@
 import { SiteHeader } from "@/components/site-header";
 import type { Metadata } from "next";
+import { knowledgeCutover,publicKnowledge } from "@/lib/admin/public-knowledge";
 
 export const metadata: Metadata = {
   title: "About — Adam Wisher",
@@ -7,7 +8,10 @@ export const metadata: Metadata = {
     "Adam Wisher's background in technology, mathematics, business leadership, product management, and digital transformation.",
 };
 
-export default function AboutPage() {
+export const dynamic="force-dynamic";
+export const runtime="nodejs";
+export default async function AboutPage() {
+  const roles=knowledgeCutover()?await publicKnowledge("experience"):[];
   return (
     <main className="page-shell route-page">
       <SiteHeader />
@@ -125,6 +129,7 @@ export default function AboutPage() {
           </div>
         </div>
       </section>
+      {knowledgeCutover()&&<section className="reading-surface route-content" aria-labelledby="experience-heading"><div className="max-w-4xl"><h2 id="experience-heading" className="font-display text-3xl font-medium">Professional experience</h2><div className="mt-8 space-y-6">{roles.map(role=><article key={role.id} className="rounded-lg border border-border bg-surface p-6"><h3 className="text-xl font-medium">{role.title}</h3><p className="mt-1 text-sm text-muted-foreground">{role.organization} · {role.period?.from}{role.period?.to?` — ${role.period.to}`:""}</p><p className="mt-4 text-muted-foreground">{role.summary}</p></article>)}</div></div></section>}
     </main>
   );
 }
