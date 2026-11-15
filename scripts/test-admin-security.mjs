@@ -93,6 +93,10 @@ try{
  assert.equal((await req('/api/admin/records/products/'+app.id,{method:'PATCH',headers:editorHeaders,body:JSON.stringify({status:'PUBLISHED'})})).status,403);
  assert.equal((await req('/api/admin/records/products/'+app.id,{method:'PATCH',headers:ownerHeaders,body:JSON.stringify({status:'PUBLISHED'})})).status,200);
  assert.equal((await req('/apps/stage-five-app')).status,200);
+ const publicReleaseResponse=await req('/api/admin/modules/releases',{method:'POST',headers:ownerHeaders,body:JSON.stringify({title:'Public media acceptance',version:'media-test',product_id:app.id,media_id:asset.id,status:'PUBLISHED',visibility:'PUBLIC'})});assert.equal(publicReleaseResponse.status,201);const publicRelease=await publicReleaseResponse.json();
+ const publicAsset=await req(`/api/media/${asset.id}`);assert.equal(publicAsset.status,200);assert.equal(publicAsset.headers.get('cache-control'),'private, no-store');assert.equal(publicAsset.headers.get('x-content-type-options'),'nosniff');
+ assert.equal((await req(`/api/admin/modules/releases/${publicRelease.id}`,{method:'PATCH',headers:ownerHeaders,body:JSON.stringify({status:'ARCHIVED'})})).status,200);assert.equal((await req(`/api/media/${asset.id}`)).status,404);
+
  assert.equal((await req('/api/admin/records/products/'+app.id,{method:'PATCH',headers:ownerHeaders,body:JSON.stringify({status:'ARCHIVED'})})).status,200);
  assert.equal((await req('/apps/stage-five-app')).status,404);
  assert.equal((await req('/api/admin/users/'+ownerCookie,{method:'PATCH',headers:editorHeaders,body:'{}'})).status,403);

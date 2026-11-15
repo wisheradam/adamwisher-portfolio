@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+    branches: [main, feature/neon-postgresql-free]
 
 permissions:
   contents: read
@@ -34,6 +34,8 @@ jobs:
         run: npm ci
       - name: Validate repository engineering skills
         run: node scripts/validate-engineering-skills.mjs
+      - name: Media storage failure and publication security
+        run: node scripts/test-media-storage.mjs
       - name: Neon adapter contract
         run: node scripts/test-neon-adapter.mjs
       - name: Migration tracking and recovery
