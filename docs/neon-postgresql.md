@@ -75,7 +75,7 @@ separately reviewed retention job; do not delete audit records to make quota roo
 ## Isolated acceptance
 
 CI runs the complete existing PGlite HTTP/security/browser suites, new adapter contract
-checks, migration recovery checks and a disposable PostgreSQL 16 service compatibility /
+checks, migration recovery checks and a disposable PostgreSQL 18 service compatibility /
 logical export-restore check. It does not use a production Neon secret.
 
 For live development acceptance create a Free project, select an EU region, and create
@@ -155,3 +155,28 @@ Remaining gates: owner Neon project connection, live Neon/staging UI and cold-st
 source recovery inventory, independent pg_dump restore drill, S3 integration/provisioning,
 production environment delivery and separate release approval. Nothing here upgrades a
 plan, changes AWS, creates Admin users or deploys production.
+
+## Live isolated review — November 15, 2026
+
+Neon MCP access verified for project shy-breeze-43898017. Production branch
+br-summer-bird-b915xsws was not queried or changed. Created integration-review
+(br-wispy-darkness-b91vydbj) with Free-plan defaults after an explicit suspend
+timeout was rejected. PostgreSQL reports 18.7 (180007).
+
+Using Neon SQL API transactions only in integration_acceptance: all five historical
+migration SQL files created 17 tables and five ledger entries. A failed transaction
+rolled back both a CREATE TABLE and INSERT. Synthetic working Draft v2 retained
+published v1; an invalid audit write rolled back its accompanying content update.
+Exported the synthetic working row, snapshot and audit together in one SQL statement,
+then restored them into a separate PGlite engine and verified all three. Backup stays
+in ignored local .data, not Git. This is a synthetic logical restore, not a pg_dump
+disaster-recovery drill. SQL API execution is not a test of the CLI migration engine;
+its skip/checksum/recovery regressions run locally and in CI.
+
+Direct WebSocket-driver acceptance failed in this workspace (no successful handshake).
+The first attempt revealed that Client.end could wait forever after a failed connection;
+cleanup is now bounded to two seconds and has a regression test. No write is retried.
+Live application-driver, HTTP RBAC/authentication and cold-start acceptance remain
+blocked by transport availability here. Existing isolated HTTP RBAC/security and
+PostgreSQL publication suites remain required, but are not called live Neon results.
+No production bootstrap, media provisioning, plan upgrade, merge or deployment occurred.

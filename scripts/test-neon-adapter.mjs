@@ -21,3 +21,6 @@ for(const failure of [null,'connect','BEGIN','INSERT','COMMIT','ROLLBACK']){
  if(failure==='INSERT')ok(()=>assert.ok(!calls.includes('COMMIT')));
 }
 console.log(`Neon adapter: ${checks} checks passed (configuration, TLS, parameter forwarding, transaction affinity, rollback and cleanup; mocked transport, not live Neon)`);
+const hanging=createNeonStore({env,makeClient:()=>({connect:async()=>{},query:async()=>({rows:[{ok:true}]}),end:()=>new Promise(()=>{})})});
+assert.deepEqual(await hanging.query('SELECT 1'),[{ok:true}]);
+console.log('Neon cleanup regression: 1 check passed (unsettled end cannot hang the request)');
