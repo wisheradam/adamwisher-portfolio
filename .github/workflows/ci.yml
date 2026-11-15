@@ -53,6 +53,10 @@ jobs:
         run: npm run admin:migrate
       - name: Bootstrap isolated Admin account
         run: npm run admin:bootstrap
+      - name: Import isolated public knowledge and enable matched review cutover
+        run: |
+          node scripts/admin-import-knowledge.mjs > "$RUNNER_TEMP/knowledge-report.json"
+          node -e 'const fs=require("fs");const r=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+"/knowledge-report.json"));if(!r.cutoverReady)process.exit(1);fs.appendFileSync(process.env.GITHUB_ENV,"PUBLIC_KNOWLEDGE_CUTOVER_SHA="+r.fingerprint+"\n")'
       - name: Browser regressions
         run: npm run test:e2e
       - name: Upload Admin review screenshots
