@@ -334,3 +334,6 @@
 .gf-sheet--art .gf-sheet-meta, .dark .gf-root .gf-sheet--art .gf-sheet-meta { color:#e0e8f2; }
 .gf-root[data-open] .gf-sheet:hover { z-index:20 !important; }
 .gf-root { --gf-ink-soft:rgb(var(--color-secondary)); }
+
+/* Reserve room for the authored rotated fan, without clipping its sheets. */
+@media (max-width:639px) { .gf-root { width:calc(100% - 24px); } }

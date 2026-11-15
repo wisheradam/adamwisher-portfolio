@@ -59,7 +59,8 @@ added to the homepage.
 - Full project titles remain visible in semantic headings below the folder,
   even when the front-panel title uses the supplied ellipsis treatment.
 - ResizeObserver scales the original geometry to the available card width.
-  The aspect-ratio reserves layout space; assets have dimensions, lazy loading
+  A 24px mobile inset reserves room for the rotated fan at narrow widths; the
+  aspect-ratio reserves layout space. Assets have dimensions, lazy loading
   and asynchronous decoding. Existing light/dark theme classes control artwork
   and ink without theme hydration state or per-card theme observers.
 - Pointer updates are requestAnimationFrame-bounded, touch ignores parallax,
