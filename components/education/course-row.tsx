@@ -16,18 +16,19 @@ export function CourseRow({
       <div className="min-w-0">
         <h4 className="text-sm font-medium leading-relaxed">{record.title}</h4>
         <p className="mt-1 text-sm text-muted-foreground">
-          {record.organization}
+          {record.organization}{record.learningType ? ` · ${record.learningType}` : ""}
         </p>
         {preparation ? (
           <span className="mt-2 inline-block rounded-full border border-accent/30 bg-accent/10 px-2.5 py-1 font-mono text-[10px] uppercase tracking-wide text-accent">
             Exam preparation
           </span>
         ) : null}
-        {record.id.startsWith("training-") ? (
+        {record.summary ? (
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
             {record.summary}
           </p>
         ) : null}
+        {record.credentialUrl && /^https:\/\//i.test(record.credentialUrl) ? <a href={record.credentialUrl} className="mt-2 inline-block text-sm underline">View credential</a> : null}
       </div>
       <p className="mt-3 shrink-0 font-mono text-xs text-muted-foreground sm:mt-1">
         {completedAt}

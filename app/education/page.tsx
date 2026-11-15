@@ -61,8 +61,7 @@ export const dynamic="force-dynamic";
 export const runtime="nodejs";
 export default async function EducationPage() {
   const studies = await publicKnowledge("education");
-  const courses = (await publicKnowledge("certifications"))
-    .sort((a, b) => (b.period?.to ?? "").localeCompare(a.period?.to ?? ""));
+  const courses = await publicKnowledge("certifications");
 
   return (
     <main className="page-shell route-page">

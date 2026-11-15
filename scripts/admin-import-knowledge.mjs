@@ -13,7 +13,7 @@ function date(value){if(!value||value==='present')return null;return value;}
 const specifications=[
  {name:'experience',table:'experience',records:source('experience'),fields:r=>({company:r.organization,title:r.title,location:r.location??null,start_date:date(r.period?.from),end_date:date(r.period?.to),is_current:r.period?.to==='present',description:r.summary??null,achievements:r.facts?.join('\n')??null,technologies:r.skills?.join(', ')??null})},
  {name:'education',table:'education_records',records:source('education'),fields:r=>({institution:r.organization,program:r.title,start_date:date(r.period?.from),end_date:date(r.period?.to),description:r.summary??null})},
- {name:'certifications',table:'certifications',records:source('certifications'),fields:r=>({title:r.title,issuer:r.organization,credential_type:'Course / Training',completion_date:date(r.period?.to),description:r.summary??null,skills:r.skills?.join(', ')??null})},
+ {name:'certifications',table:'certifications',records:source('certifications'),fields:r=>({title:r.title,issuer:r.organization,credential_type:r.learningType??'Other learning activity',completion_date:date(r.period?.to),description:r.summary??null,skills:r.skills?.join(', ')??null})},
 ];
 const db=await PGlite.create(process.env.ADMIN_DB_PATH),now=new Date().toISOString();
 try{
@@ -29,8 +29,9 @@ try{
   }report.push({entity:spec.name,source:spec.records.filter(r=>r.public).length,created,preserved});}
  });
  let differences=0;
- for(const spec of specifications){for(const record of spec.records.filter(r=>r.public)){const row=(await db.query(`SELECT * FROM ${spec.table} WHERE id=$1`,[uuid(record.id)])).rows[0];if(!row){differences++;continue;}if(!row.updated_by||row.updated_by===actor){const fields=spec.fields(record);if(Object.entries(fields).some(([key,value])=>row[key]!==value))differences++;}}}
+ for(const spec of specifications){for(const record of spec.records.filter(r=>r.public)){const row=(await db.query(`SELECT * FROM ${spec.table} WHERE id=$1`,[uuid(record.id)])).rows[0];if(!row){differences++;continue;}const fields={...spec.fields(record),sort_order:spec.records.indexOf(record),visibility:'PUBLIC',status:'PUBLISHED'};if(Object.entries(fields).some(([key,value])=>row[key]!==value))differences++;}}
  const fingerprint=createHash('sha256').update(specifications.flatMap(s=>s.records.filter(r=>r.public).map(r=>r.id)).join('\n')).digest('hex');
- console.log(JSON.stringify({report,differences,cutoverReady:differences===0,fingerprint},null,2));
+ const unresolved=specifications.flatMap(spec=>spec.records.filter(r=>r.public).flatMap(r=>r.evidence.filter(e=>!e.locator).map(e=>({sourceId:r.id,field:'evidence.locator',reason:'Source evidence has no public URL',label:e.label}))));
+ console.log(JSON.stringify({report,unresolved,differences,cutoverReady:differences===0,fingerprint},null,2));
  if(differences)process.exitCode=1;
 }finally{await db.close();}

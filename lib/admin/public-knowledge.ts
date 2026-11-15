@@ -17,6 +17,6 @@ export async function publicKnowledge(kind:keyof typeof sources):Promise<Knowled
  return rows.map(row=>{
   const original=originals.get(String(row.id));const name=kind==="experience"?row.company:kind==="education"?row.institution:row.issuer;
   const title=kind==="education"?row.program:row.title;
-  return {id:original?.id??String(row.id),category:kind==="certifications"?"certification":kind,title:String(title),organization:String(name),summary:String(row.description??""),period:{from:String(row.start_date??""),to:String(row.end_date??row.completion_date??"")},skills:original?.skills??(row.skills?String(row.skills).split(", "):[]),tags:original?.tags??[],evidence:original?.evidence??[],confidence:original?.confidence??"high",public:true} as KnowledgeRecord;
+  return {id:original?.id??String(row.id),learningType:kind==="certifications"?(String(row.credential_type??"Other learning activity") as KnowledgeRecord["learningType"]):undefined,credentialUrl:row.credential_url?String(row.credential_url):undefined,category:kind==="certifications"?"certification":kind,title:String(title),organization:String(name),summary:String(row.description??""),period:{from:String(row.start_date??""),to:String(row.end_date??row.completion_date??"")},skills:original?.skills??(row.skills?String(row.skills).split(", "):[]),tags:original?.tags??[],evidence:original?.evidence??[],confidence:original?.confidence??"high",public:true} as KnowledgeRecord;
  });
 }
