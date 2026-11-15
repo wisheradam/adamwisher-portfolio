@@ -10,7 +10,7 @@ const cases=[
  {module:'timeline',table:'timeline_events',label:'Title',route:'/history',extra:{Date:'2025-06-01'}},
 ];
 for(const c of cases)test(`${c.module}: UI publication lifecycle isolates working revisions`,async({page,browser},testInfo)=>{
- await login(page);const origin=new URL(page.url()).origin,tag=`synthetic-${c.module}-${Date.now()}`,v1=`${tag} approved v1`,v2=`${tag} pending v2`;let id='';let parentId='';let flagId='';
+ page.setDefaultTimeout(10000);await login(page);const origin=new URL(page.url()).origin,tag=`synthetic-${c.module}-${Date.now()}`,v1=`${tag} approved v1`,v2=`${tag} pending v2`;let id='';let parentId='';let flagId='';
  const api=c.module==='apps'?'/api/admin/records/products':`/api/admin/modules/${c.module}`;
  const publicPage=await browser.newPage();let publicRoute=c.route;
  const setup=async(url:string,data:unknown)=>{const r=await page.request.post(url,{headers:{Origin:origin},data});expect(r.status()).toBe(201);return (await r.json()).id as string;};
@@ -22,9 +22,9 @@ for(const c of cases)test(`${c.module}: UI publication lifecycle isolates workin
   await form.getByLabel(c.label,{exact:true}).fill(v1);
   for(const [label,value] of Object.entries(c.extra))await form.getByLabel(label,{exact:true}).fill(value);
   if(c.module==='apps')await form.getByLabel('Slug',{exact:true}).fill(tag);
-  if(c.module==='timeline')await form.getByLabel('Event type',{exact:true}).selectOption('MILESTONE');
+  if(c.module==='timeline')await form.getByLabel('Event type').selectOption('MILESTONE');
   if(parentId)await form.getByLabel('App ID',{exact:true}).fill(parentId);
-  await form.getByLabel('Visibility',{exact:true}).selectOption('PUBLIC');
+  await form.getByLabel('Visibility').selectOption('PUBLIC');
   const description=c.module==='apps'?'Summary':c.module==='releases'?'Release notes':'Description';
   await form.getByLabel(description,{exact:true}).fill('Clearly synthetic isolated acceptance fixture.');
   const created=page.waitForResponse(r=>r.url().endsWith(api)&&r.request().method()==='POST');
@@ -57,7 +57,7 @@ for(const c of cases)test(`${c.module}: UI publication lifecycle isolates workin
 });
 
 test('publishing RBAC, rejected requests and session loss preserve public content',async({page,browser})=>{
- await login(page);const origin=new URL(page.url()).origin,tag=`synthetic-rbac-${Date.now()}`;const accounts:{id:string;email:string;password:string}[]=[];let id='';
+ page.setDefaultTimeout(10000);await login(page);const origin=new URL(page.url()).origin,tag=`synthetic-rbac-${Date.now()}`;const accounts:{id:string;email:string;password:string}[]=[];let id='';
  const editorContext=await browser.newContext(),readerContext=await browser.newContext();
  try{
   for(const role of ['EDITOR','READ_ONLY']){const password=`Synthetic-${tag}-${role}`,email=`${role.toLowerCase()}-${tag}@example.test`;const made=await page.request.post('/api/admin/users',{headers:{Origin:origin},data:{email,password,role}});expect(made.status()).toBe(201);accounts.push({...await made.json(),password});}
