@@ -85,7 +85,7 @@ test("apps and tools creation, editing and search remain private",async({page,re
   const form=page.locator("form.admin-editor");await form.getByLabel("Title").fill("QA App");await form.getByLabel("Slug").fill(name);
   await form.getByLabel("Type").selectOption("AI_TOOL");await form.getByRole("button",{name:"Save draft"}).click();
   await page.getByLabel("Search").fill(name);await expect(page.getByRole("cell",{name:/QA App/})).toBeVisible();
-  await page.getByRole("button",{name:"Edit"}).click();await form.getByLabel("Summary").fill("Updated app");await form.getByRole("button",{name:"Save draft"}).click();
+  await page.locator("tbody tr").filter({hasText:name}).getByRole("button",{name:"Edit"}).click();await form.getByLabel("Summary").fill("Updated app");await form.getByRole("button",{name:"Save draft"}).click();
   expect((await request.get(`/apps/${name}`)).status()).toBe(404);
 });
 
