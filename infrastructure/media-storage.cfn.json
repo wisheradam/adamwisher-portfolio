@@ -1,0 +1,17 @@
+{
+ "AWSTemplateFormatVersion":"2010-09-09",
+ "Description":"PROPOSAL ONLY: private versioned portfolio media. Deploy in eu-north-1 after budget/IAM approval.",
+ "Parameters":{"RuntimeRoleName":{"Type":"String","Default":"AmplifyCompute-adamwisher-contact"}},
+ "Resources":{
+  "MediaBucket":{"Type":"AWS::S3::Bucket","DeletionPolicy":"Retain","UpdateReplacePolicy":"Retain","Properties":{
+   "PublicAccessBlockConfiguration":{"BlockPublicAcls":true,"IgnorePublicAcls":true,"BlockPublicPolicy":true,"RestrictPublicBuckets":true},
+   "OwnershipControls":{"Rules":[{"ObjectOwnership":"BucketOwnerEnforced"}]},
+   "VersioningConfiguration":{"Status":"Enabled"},
+   "BucketEncryption":{"ServerSideEncryptionConfiguration":[{"ServerSideEncryptionByDefault":{"SSEAlgorithm":"AES256"}}]},
+   "LifecycleConfiguration":{"Rules":[{"Id":"AbortIncompleteUploads","Status":"Enabled","AbortIncompleteMultipartUpload":{"DaysAfterInitiation":1}}]}
+  }},
+  "MediaBucketPolicy":{"Type":"AWS::S3::BucketPolicy","Properties":{"Bucket":{"Ref":"MediaBucket"},"PolicyDocument":{"Version":"2012-10-17","Statement":[{"Effect":"Deny","Principal":"*","Action":"s3:*","Resource":[{"Fn::GetAtt":["MediaBucket","Arn"]},{"Fn::Sub":"${MediaBucket.Arn}/*"}],"Condition":{"Bool":{"aws:SecureTransport":"false"}}}]}}},
+  "RuntimeMediaPolicy":{"Type":"AWS::IAM::Policy","Properties":{"PolicyName":"PortfolioMediaObjects","Roles":[{"Ref":"RuntimeRoleName"}],"PolicyDocument":{"Version":"2012-10-17","Statement":[{"Effect":"Allow","Action":["s3:GetObject","s3:PutObject","s3:DeleteObject"],"Resource":{"Fn::Sub":"${MediaBucket.Arn}/media/*"}}]}}}
+ },
+ "Outputs":{"BucketName":{"Value":{"Ref":"MediaBucket"}}}
+}

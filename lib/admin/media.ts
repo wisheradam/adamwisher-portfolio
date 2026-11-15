@@ -1,12 +1,16 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
-import { mkdir,writeFile,readFile,unlink } from "node:fs/promises";
-import path from "node:path";
+import { createMediaStorage,StorageError } from "./media-storage.mjs";
+import { publishedRows } from "./publication";
+import { knowledgeCutover } from "./public-knowledge";
+import { publicFlag } from "./public-flags";
 import { store,type Query } from "./db";
 export class MediaError extends Error{constructor(message:string,public status=400){super(message);}}
 const types:Record<string,string>={"image/png":"png","image/jpeg":"jpg","image/webp":"webp","application/pdf":"pdf"};
 const max=10*1024*1024;
-function root(){if(["aurora-data-api","neon"].includes(process.env.ADMIN_DATABASE_DRIVER??""))throw new MediaError("Durable media storage is not configured for this environment",503);return path.resolve(process.env.ADMIN_MEDIA_PATH??path.join(process.cwd(),".data","admin-media"));}
+const storage=createMediaStorage();
+function root(){try{storage.check();}catch(e){if(e instanceof StorageError)throw new MediaError(e.message,e.status);throw e;}}
+
 export function inspectMedia(name:string,mime:string,bytes:Uint8Array){
  if(!name||name.length>180||name.includes("/")||name.includes("\\")||/[\x00-\x1f]/.test(name))throw new MediaError("Invalid filename");
  const ext=types[mime];if(!ext||!name.toLowerCase().endsWith(`.${ext}`)&&!(mime==="image/jpeg"&&name.toLowerCase().endsWith(".jpeg")))throw new MediaError("Unsupported file type");
@@ -20,17 +24,27 @@ async function usage(query:Query,id:string){const found=[];for(const entry of re
 export async function mediaUsage(id:string){root();return usage(store.query,id);}
 export async function listMedia(search:string,page:number){root();return store.query("SELECT id,original_filename,display_name,mime_type,file_size,width,height,alt_text,caption,created_at,updated_at FROM media_assets WHERE deleted_at IS NULL AND display_name ILIKE $1 ORDER BY created_at DESC LIMIT 25 OFFSET $2",[`%${search}%`,page*25]);}
 export async function getMedia(id:string){root();return (await store.query("SELECT * FROM media_assets WHERE id=$1 AND deleted_at IS NULL",[id]))[0];}
-export async function getMediaFile(id:string){const row=await getMedia(id);if(!row)throw new MediaError("Not found",404);return {row,bytes:await readFile(path.join(root(),String(row.storage_key)))};}
-export async function saveMedia(file:File,actor:string,existingId?:string){const bytes=new Uint8Array(await file.arrayBuffer()),info=inspectMedia(file.name,file.type,bytes),key=`${randomUUID()}.${info.ext}`,dir=root(),now=new Date().toISOString(),id=existingId??randomUUID();await mkdir(dir,{recursive:true});await writeFile(path.join(dir,key),bytes,{flag:"wx",mode:0o600});
+export async function getMediaFile(id:string){const row=await getMedia(id);if(!row)throw new MediaError("Not found",404);return {row,bytes:await storage.read(String(row.storage_key))};}
+export function mediaUploadLimit(){root();return process.env.ADMIN_MEDIA_DRIVER==="s3"?4*1024*1024:max;}
+export async function saveMedia(file:File,actor:string,existingId?:string){if(file.size>mediaUploadLimit())throw new MediaError("File exceeds the upload limit",413);const bytes=new Uint8Array(await file.arrayBuffer()),info=inspectMedia(file.name,file.type,bytes),key=`${randomUUID()}.${info.ext}`,now=new Date().toISOString(),id=existingId??randomUUID();root();await storage.put(key,bytes,file.type);
+ let committed=false;
  try{const old=await store.transaction(async query=>{
    const before=existingId?(await query("SELECT * FROM media_assets WHERE id=$1 AND deleted_at IS NULL FOR UPDATE",[existingId]))[0]:undefined;
    if(existingId&&!before)throw new MediaError("Not found",404);
+   if(before&&(await usage(query,id)).length)throw new MediaError("Referenced media cannot be replaced; upload a separate draft asset",409);
    const record=(await query("INSERT INTO media_assets(id,storage_key,original_filename,display_name,mime_type,file_size,width,height,alt_text,caption,created_at,updated_at,uploaded_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$11,$12) ON CONFLICT(id) DO UPDATE SET storage_key=excluded.storage_key,original_filename=excluded.original_filename,mime_type=excluded.mime_type,file_size=excluded.file_size,width=excluded.width,height=excluded.height,updated_at=excluded.updated_at RETURNING *",[id,key,file.name,before?.display_name??file.name,file.type,bytes.length,info.width,info.height,before?.alt_text??"",before?.caption??"",now,actor]))[0];
    await query("INSERT INTO audit_events(id,actor_id,action,entity_type,entity_id,before_state,after_state,created_at) VALUES($1,$2,$3,'media_assets',$4,$5,$6,$7)",[randomUUID(),actor,before?"REPLACED":"CREATED",id,JSON.stringify(before??null),JSON.stringify(record),now]);return before;
   });
-  if(old?.storage_key)await unlink(path.join(dir,String(old.storage_key))).catch(()=>{});
+  committed=true;
+  // Retain the previous immutable object for audited recovery; never delete on replacement.
+  void old;
   return getMedia(id);
- }catch(e){await unlink(path.join(dir,key)).catch(()=>{});throw e;}
+ }catch(e){
+  // A commit response can fail after commit. Delete only after a successful
+  // independent read proves that metadata does not reference this object.
+  try{if(!committed){const rows=await store.query("SELECT id FROM media_assets WHERE storage_key=$1 UNION SELECT id FROM audit_events WHERE entity_type='media_assets' AND (after_state::jsonb->>'storage_key'=$1 OR before_state::jsonb->>'storage_key'=$1)",[key]);if(!rows.length)await storage.discard(key);}}catch{/* Retain uncertain orphans for a reconciled cleanup, never risk committed data. */}
+  throw e;
+ }
 }
 export async function editMedia(id:string,actor:string,raw:unknown){root();if(!raw||typeof raw!=="object")throw new MediaError("Invalid metadata");const input=raw as Record<string,unknown>,data:Record<string,string>={};for(const key of ["display_name","alt_text","caption"]){if(key in input){if(typeof input[key]!=="string"||input[key].length>1000)throw new MediaError(`Invalid ${key}`);data[key]=input[key];}}if(!Object.keys(data).length)throw new MediaError("No metadata supplied");return store.transaction(async query=>{
  const before=(await query("SELECT * FROM media_assets WHERE id=$1 AND deleted_at IS NULL FOR UPDATE",[id]))[0];if(!before)throw new MediaError("Not found",404);
@@ -38,3 +52,19 @@ export async function editMedia(id:string,actor:string,raw:unknown){root();if(!r
  await query("INSERT INTO audit_events(id,actor_id,action,entity_type,entity_id,before_state,after_state,created_at) VALUES($1,$2,'UPDATED','media_assets',$3,$4,$5,$6)",[randomUUID(),actor,id,JSON.stringify(before),JSON.stringify(after),now]);return after;
  });}
 export async function deleteMedia(id:string,actor:string){root();return store.transaction(async query=>{const before=(await query("SELECT * FROM media_assets WHERE id=$1 AND deleted_at IS NULL FOR UPDATE",[id]))[0];if(!before)throw new MediaError("Not found",404);const references=await usage(query,id);if(references.length)throw new MediaError(`Asset is referenced by ${references.join(", ")}`,409);const now=new Date().toISOString();await query("UPDATE media_assets SET deleted_at=$1,updated_at=$1 WHERE id=$2",[now,id]);await query("INSERT INTO audit_events(id,actor_id,action,entity_type,entity_id,before_state,after_state,created_at) VALUES($1,$2,'DELETED','media_assets',$3,$4,NULL,$5)",[randomUUID(),actor,id,JSON.stringify(before),now]);return true;});}
+
+export async function getPublicMediaFile(id:string){
+ if(process.env.PUBLIC_CONTENT_SOURCE!=="database")throw new MediaError("Not found",404);
+ let eligible=false;
+ const candidates=await store.query("SELECT DISTINCT entity_type FROM publication_snapshots WHERE payload::jsonb->>'company_logo_media_id'=$1 OR payload::jsonb->>'media_id'=$1 OR payload::jsonb->>'certificate_media_id'=$1",[id]);
+ for(const table of ["experience","education_records","certifications","releases","timeline_events"] as const){
+  if(!candidates.some(row=>row.entity_type===table))continue;
+  if(["experience","education_records","certifications"].includes(table)&&!knowledgeCutover())continue;
+  if(table==="releases"&&!await publicFlag("show_apps"))continue;
+  if(table==="timeline_events"&&!await publicFlag("show_history"))continue;
+  const rows=await publishedRows(table);
+  if(rows.some(row=>[row.company_logo_media_id,row.media_id,row.certificate_media_id].includes(id)))eligible=true;
+ }
+ if(!eligible)throw new MediaError("Not found",404);
+ return getMediaFile(id);
+}
