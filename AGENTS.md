@@ -209,8 +209,9 @@ additional service-specific conventions; never copy actual credentials into Git.
 
 ## GitHub & Release Workflow
 
-- Current authorized development branch: `feature/admin-console-stage-5`;
-  existing [Draft PR #10](https://github.com/wisheradam/adamwisher-portfolio/pull/10).
+- Use the branch and existing PR authorized by the current task. Stage 5 used
+  `feature/admin-console-stage-5` and PR #10; do not treat those historical
+  identifiers as authorization for later work.
   Fetch and inspect remote HEAD/status before editing and again before pushing.
   Record starting SHA; preserve concurrent commits and uncommitted work.
 - Make focused commits with descriptive messages; inspect the staged diff and
@@ -223,11 +224,32 @@ additional service-specific conventions; never copy actual credentials into Git.
   Verify runs/checks associated with the **exact final head SHA**, including the
   PR merge-ref association where applicable, and link the run. Pending/blocked
   CI is not PASS. Main triggers production Amplify builds; do not merge to test CI.
-- No repository agent/skill definitions or skill-installation mechanism existed
-  before this file. `data/knowledge/skills.ts` is portfolio data, not agent skills.
-  Use relevant Next.js, PostgreSQL, Playwright, security or release guidance only
-  when actually exposed by the agent environment; inspect its real instructions,
-  respect task authorization, and do not invent integrations or install tooling.
+- Treat production deployment triggers as live configuration, not a permanent
+  repository fact. Main may auto-deploy through Amplify; verify read-only state
+  before any separately authorized merge without deployment. Do not toggle it.
+
+## Repository Skills
+
+Repository guidance lives in `.agents/skills/*/SKILL.md`. File placement alone is
+not proof of native ChatGPT Work discovery or activation. If the environment does
+not expose these names, manually read the selected files before acting and report
+that fallback honestly. Do not install personal skills or invent registration.
+Project Instructions and task authorization take precedence, then this AGENTS.md,
+then skill guidance. Security, data integrity and release gates always apply.
+
+| Task | Load only relevant guidance |
+| --- | --- |
+| Routes, metadata, UI | `.agents/skills/nextjs-engineer/SKILL.md` |
+| Persistence, migrations | `.agents/skills/postgresql-architect/SKILL.md` |
+| Browser acceptance | `.agents/skills/playwright-qa/SKILL.md` |
+| Auth, API or privacy review | `.agents/skills/security-auditor/SKILL.md` |
+| PR, CI, release gates | `.agents/skills/release-engineer/SKILL.md` |
+
+Add QA for observable UI/public behavior, Security for auth/privacy/data writes,
+and Release for delivery. Read only selected bodies; do not load all five for
+every task. Run `node scripts/validate-engineering-skills.mjs` after edits.
+See [validation exercises](docs/engineering-skills-validation.md) for limits and
+manual scenario evidence.
 
 ## Definition of Done
 
