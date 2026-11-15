@@ -95,3 +95,7 @@ The source inventory contains 44 courses and four training programs, not 48 prof
 
 
 Checkpoint 1 browser acceptance uses synthetic API fixtures only in the isolated CI database. Two Chromium viewport tests (390 and 320) check public classification, descriptions, order, missing media/evidence links, HTTPS credential links, draft exclusion and overflow under light/dark system preferences. A separate server checks absent/mismatched cutover with an unavailable database path. CI imports factual fixtures and enables only the matching source fingerprint. These additions require exact-commit CI validation before PASS.
+
+
+### Publication isolation foundation (not activated)
+Migration 005_publication_snapshots adds a separate payload/revision table keyed by stable entity type and ID for the six supported modules. It copies only existing PUBLISHED, nondeleted rows without mutating working records, references, or audit history. Historical approval cannot be reconstructed: the precise current legacy row is retained, not an invented earlier revision. The backfill checks the migration ledger because this runner replays SQL; subsequent reruns cannot resurrect removed snapshots. `node scripts/test-admin-publication.mjs` validates five legacy/isolation/rerun assertions in isolated PGlite. Runtime writers and public readers are not switched yet; the shared mutable publication defect remains until atomic snapshot promotion/unpublish, UI actions, RBAC and browser lifecycle coverage are integrated. Do not enable production cutover.

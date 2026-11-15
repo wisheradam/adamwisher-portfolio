@@ -28,6 +28,8 @@ jobs:
         run: npm run typecheck
       - name: Build
         run: npm run build
+      - name: Publication snapshot migration regression
+        run: node scripts/test-admin-publication.mjs
       - name: Admin data integration
         run: npm run test:admin-data
       - name: Knowledge import and reconciliation
