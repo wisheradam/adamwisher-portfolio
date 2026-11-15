@@ -8,7 +8,7 @@ import { PGlite } from '@electric-sql/pglite';
 const temp=await mkdtemp(path.join(tmpdir(),'adam-admin-test-'));
 const dbPath=path.join(temp,'database'),port=34791,base=`http://127.0.0.1:${port}`;
 const password=randomBytes(24).toString('hex'),salt=randomBytes(16).toString('hex');
-const env={...process.env,ADMIN_DATABASE_DRIVER:'pglite',ADMIN_DB_PATH:dbPath,ADMIN_SESSION_SECRET:randomBytes(48).toString('hex'),ADMIN_PASSWORD_HASH:`scrypt:${salt}:${scryptSync(password,salt,64).toString('hex')}`,ADMIN_BOOTSTRAP_EMAIL:'admin@example.test'};
+const env={...process.env,ADMIN_DATABASE_DRIVER:'pglite',PUBLIC_CONTENT_SOURCE:'database',ADMIN_DB_PATH:dbPath,ADMIN_SESSION_SECRET:randomBytes(48).toString('hex'),ADMIN_PASSWORD_HASH:`scrypt:${salt}:${scryptSync(password,salt,64).toString('hex')}`,ADMIN_BOOTSTRAP_EMAIL:'admin@example.test'};
 let server;
 function child(args){return new Promise((resolve,reject)=>{const p=spawn(process.execPath,args,{env,stdio:'ignore'});p.on('exit',code=>code===0?resolve():reject(new Error(`Command exited ${code}`)));});}
 async function start(){server=spawn(process.execPath,['node_modules/next/dist/bin/next','start','-H','127.0.0.1','-p',String(port)],{env,stdio:'ignore'});for(let i=0;i<80;i++){try{await fetch(base+'/admin/login');return;}catch{await new Promise(r=>setTimeout(r,100));}}throw new Error('Server did not start');}

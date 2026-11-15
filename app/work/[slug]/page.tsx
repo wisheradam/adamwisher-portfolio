@@ -5,6 +5,7 @@ import { store } from "@/lib/admin/db";
 export const dynamic="force-dynamic";
 export const runtime="nodejs";
 export default async function ManagedProject({params}:{params:Promise<{slug:string}>}) {
+  if(process.env.PUBLIC_CONTENT_SOURCE!=="database")notFound();
   const {slug}=await params;
   const project=(await store.query("SELECT title,summary,body,category,role FROM projects WHERE slug=$1 AND status='PUBLISHED' AND visibility='PUBLIC' AND deleted_at IS NULL",[slug]))[0];
   if(!project) notFound();
