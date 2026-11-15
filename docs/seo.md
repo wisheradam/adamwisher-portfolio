@@ -32,7 +32,9 @@ Every eligible public route supplies title, description, one canonical, Open Gra
 website/title/description/URL/site name/locale/image and a Twitter large-image
 card with matching social copy. The fixed origin is `https://adamwisher.com`.
 Incoming Host/forwarded headers, tracking parameters and fragments never control
-canonical URLs. Existing canonical validation remains in place; output also
+canonical URLs. The home canonical and sitemap entry use the origin without a
+trailing slash, matching Next.js normalization; Admin still accepts the equivalent
+legacy slash form for backwards compatibility. Existing canonical validation remains in place; output also
 constructs the canonical from the eligible route instead of trusting stored URLs.
 SEO title/description overrides and distinct OG copy remain supported. An existing
 indexable=false rule excludes the URL from the sitemap and adds noindex to page
@@ -55,6 +57,8 @@ Images use no-store to prevent an old shared image being served after unpublish;
 in-flight requests and already downloaded external platform previews cannot be
 recalled. An external social platform can independently cache a previous preview.
 Generated cards use the existing pale blue/white visual palette and accurate text.
+The image renderer expands the unsupported numero glyph to “No.”; HTML metadata
+retains the approved original title.
 They do not expose private Admin media endpoints or depend on unfinished durable
 production media storage. Uploaded OG media selection is outside this generated
 card implementation; private media IDs are not published by this feature.

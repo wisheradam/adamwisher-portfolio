@@ -49,7 +49,7 @@ export const STATIC_PAGES: Record<string, {title:string;description:string}> = {
 };
 
 // Canonicals never use request Host, forwarded headers, query strings or fragments.
-export function canonicalUrl(path:string){return `${SITE_URL}${path}`;}
+export function canonicalUrl(path:string){return path==='/'?SITE_URL:`${SITE_URL}${path}`;}
 export function socialImageUrl(path:string){return `${SITE_URL}/og?path=${encodeURIComponent(path)}`;}
 export const NOINDEX:Metadata={robots:{index:false,follow:false,nocache:true},alternates:{canonical:null},openGraph:null,twitter:null};
 export function completeMetadata(path:string,defaults:Metadata):Metadata{

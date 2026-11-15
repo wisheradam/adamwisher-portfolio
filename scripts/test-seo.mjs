@@ -15,7 +15,7 @@ try{
  process.env.PUBLIC_CONTENT_SOURCE='static';unavailable=true;
  eq((await sitemapPages()).length,Object.keys(STATIC_PAGES).length);
  for(const path of ['/admin','/admin/preview/apps/private','/projects','/mail','/missing','__proto__','//example.com','/apps/bad%2fslug','/apps/a?secret=draft'])eq(await resolvePublicPage(path),null);
- const root=completeMetadata('/',{title:'Root',description:'Description'});eq(root.alternates.canonical,'https://adamwisher.com/');eq(root.twitter.card,'summary_large_image');eq(root.openGraph.images[0].width,1200);
+ const root=completeMetadata('/',{title:'Root',description:'Description'});eq(root.alternates.canonical,'https://adamwisher.com');eq(root.twitter.card,'summary_large_image');eq(root.openGraph.images[0].width,1200);
  unavailable=false;process.env.PUBLIC_CONTENT_SOURCE='database';
  const now='2026-01-01T00:00:00.000Z';
  await db.query("INSERT INTO products(id,slug,title,type,status,visibility,created_at,updated_at,updated_by) VALUES('app','synthetic-seo','Working draft secret','WEB_APP','DRAFT','PRIVATE',$1,$1,'actor')",[now]);

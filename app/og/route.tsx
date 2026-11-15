@@ -9,7 +9,7 @@ export async function GET(request:NextRequest){
  const page=await resolvePublicPage(path);
  if(!page)return new Response(null,{status:404,headers});
  const metadata=await metadataForPath(path);
- const title=String(metadata.openGraph?.title??page.title).slice(0,140);
+ const title=String(metadata.openGraph?.title??page.title).replaceAll('№','No. ').slice(0,140);
  const description=String(metadata.openGraph?.description??page.description).slice(0,220);
  return new ImageResponse(<div style={{display:'flex',flexDirection:'column',width:'100%',height:'100%',padding:'68px',color:'#172d46',background:'linear-gradient(135deg, #f6fbff, #daeafa 65%, #f8e9ee)',fontFamily:'sans-serif'}}>
   <div style={{display:'flex',fontSize:26,letterSpacing:3}}>ADAM WISHER</div>

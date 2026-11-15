@@ -1,5 +1,5 @@
 import {test,expect,type Page} from '@playwright/test';
-const canonical=(path:string)=>`https://adamwisher.com${path}`;
+const canonical=(path:string)=>`https://adamwisher.com${path==='/'?'':path}`;
 const statics=['/','/about','/education','/work','/contact','/work/single-source-of-truth','/work/check2go','/work/innova-knowledge-base','/work/business-systems-transformation','/work/ai-support-assistant','/work/prescription-medication-marketplace'];
 async function login(page:Page){await page.goto('/admin/login');await page.getByLabel('Email').fill(process.env.ADMIN_TEST_EMAIL??'admin@example.test');await page.getByLabel('Password').fill(process.env.ADMIN_TEST_PASSWORD!);await page.getByRole('button',{name:'Sign in',exact:true}).click();await expect(page).toHaveURL(/\/admin$/);}
 async function social(page:Page,path:string){
