@@ -5,7 +5,7 @@ import vm from 'node:vm';
 import ts from 'typescript';
 import { PGlite } from '@electric-sql/pglite';
 
-if(process.env.ADMIN_DATABASE_DRIVER==='aurora-data-api')throw new Error('Knowledge import requires an isolated local PGlite database');
+if(process.env.ADMIN_DATABASE_DRIVER && process.env.ADMIN_DATABASE_DRIVER!=='pglite')throw new Error('Knowledge import requires an isolated local PGlite database');
 if(!process.env.ADMIN_DB_PATH)throw new Error('Set ADMIN_DB_PATH to an isolated review database');
 function source(name){const file=path.join(process.cwd(),'data','knowledge',`${name}.ts`);const js=ts.transpileModule(readFileSync(file,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;const sandbox={exports:{}};vm.runInNewContext(js,sandbox,{filename:file,timeout:1000});return sandbox.exports[name];}
 function uuid(seed){const h=createHash('sha256').update(`adamwisher:knowledge:${seed}`).digest('hex');return `${h.slice(0,8)}-${h.slice(8,12)}-5${h.slice(13,16)}-a${h.slice(17,20)}-${h.slice(20,32)}`;}

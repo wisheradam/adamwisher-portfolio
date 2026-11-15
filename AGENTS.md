@@ -87,9 +87,9 @@ additional service-specific conventions; never copy actual credentials into Git.
   structured modules, then publication snapshots. No ORM migration CLI is used.
 - Run `npm run admin:migrate` only against the explicitly selected environment.
   `scripts/admin-migrate.mjs` sorts numbered SQL files, splits statements on
-  semicolons, and executes each file in a transaction. It **replays SQL on every
-  run**, recording versions in `admin_schema_migrations`; the ledger does not
-  skip whole files. New migrations must be rerunnable and compatible with this
+  semicolons, and executes each file in a transaction. It skips successful versions in `admin_schema_migrations`, pins checksums
+  (including trusted legacy entries), and rejects later checksum drift.
+  Ledger checks and SQL execute under a transaction and table lock. New migrations must be rerunnable and compatible with this
   parser. Do not assume procedural SQL containing semicolons will work.
 - Add numbered migrations; do not rewrite applied migrations or remove data.
   Preserve IDs, relationships, provenance and audit history. Use additive,
@@ -100,7 +100,10 @@ additional service-specific conventions; never copy actual credentials into Git.
   values. Dynamic SQL identifiers must come from existing allowlists. Keep row
   locks, working writes, publication changes and audit writes in one transaction;
   audit/snapshot failures must roll everything back.
-- PGlite defaults to `.data/admin-pg`; set a separate `ADMIN_DB_PATH` for tests.
+- Neon uses `ADMIN_DATABASE_DRIVER=neon`, TLS `ADMIN_DATABASE_URL` at runtime,
+  and a direct `ADMIN_DATABASE_DIRECT_URL` for explicit CLI migrations/bootstrap.
+  Missing production driver configuration fails closed on database access.
+  PGlite defaults to `.data/admin-pg`; set a separate `ADMIN_DB_PATH` for tests.
   Aurora uses `ADMIN_DATABASE_DRIVER=aurora-data-api` and server-side
   `ADMIN_DB_RESOURCE_ARN`, `ADMIN_DB_SECRET_ARN`, `ADMIN_DB_NAME`, `AWS_REGION`.
   The adapter's presence is not evidence of live Aurora validation.

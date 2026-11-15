@@ -2,6 +2,7 @@ import "server-only";
 import { RDSDataClient, ExecuteStatementCommand, BeginTransactionCommand, CommitTransactionCommand, RollbackTransactionCommand, type Field } from "@aws-sdk/client-rds-data";
 import { PGlite } from "@electric-sql/pglite";
 import path from "node:path";
+import { createNeonStore, databaseMode } from "./neon-store.mjs";
 
 type Scalar = string | number | boolean | null;
 export type Row = Record<string, Scalar>;
@@ -10,7 +11,8 @@ export interface Store { query: Query; transaction<T>(fn: (query: Query) => Prom
 
 let local: Promise<PGlite> | undefined;
 let remote: RDSDataClient | undefined;
-const mode = () => process.env.ADMIN_DATABASE_DRIVER ?? "pglite";
+const mode = () => databaseMode();
+const neonStore = createNeonStore();
 function config() {
   const resourceArn=process.env.ADMIN_DB_RESOURCE_ARN,secretArn=process.env.ADMIN_DB_SECRET_ARN,database=process.env.ADMIN_DB_NAME;
   if (!resourceArn || !secretArn || !database || !process.env.AWS_REGION) throw new Error("Admin database configuration is incomplete");
@@ -37,8 +39,9 @@ async function embedded():Promise<PGlite> {
   return local;
 }
 export const store:Store={
-  async query(sql,values=[]) { if(mode()==="aurora-data-api") return aurora(sql,values); if(mode()!=="pglite") throw new Error("Unknown admin database driver"); return (await (await embedded()).query<Row>(sql,values)).rows; },
+  async query(sql,values=[]) { if(mode()==="neon") return neonStore.query(sql,values); if(mode()==="aurora-data-api") return aurora(sql,values); if(mode()!=="pglite") throw new Error("Unknown admin database driver"); return (await (await embedded()).query<Row>(sql,values)).rows; },
   async transaction(fn) {
+    if(mode()==="neon") return neonStore.transaction(fn);
     if(mode()==="aurora-data-api") {
       const cfg=config();remote ??=new RDSDataClient({region:process.env.AWS_REGION,maxAttempts:2});
       const id=(await remote.send(new BeginTransactionCommand(cfg))).transactionId;

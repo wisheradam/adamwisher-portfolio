@@ -6,7 +6,7 @@ import { store,type Query } from "./db";
 export class MediaError extends Error{constructor(message:string,public status=400){super(message);}}
 const types:Record<string,string>={"image/png":"png","image/jpeg":"jpg","image/webp":"webp","application/pdf":"pdf"};
 const max=10*1024*1024;
-function root(){if(process.env.ADMIN_DATABASE_DRIVER==="aurora-data-api")throw new MediaError("Durable media storage is not configured for this environment",503);return path.resolve(process.env.ADMIN_MEDIA_PATH??path.join(process.cwd(),".data","admin-media"));}
+function root(){if(["aurora-data-api","neon"].includes(process.env.ADMIN_DATABASE_DRIVER??""))throw new MediaError("Durable media storage is not configured for this environment",503);return path.resolve(process.env.ADMIN_MEDIA_PATH??path.join(process.cwd(),".data","admin-media"));}
 export function inspectMedia(name:string,mime:string,bytes:Uint8Array){
  if(!name||name.length>180||name.includes("/")||name.includes("\\")||/[\x00-\x1f]/.test(name))throw new MediaError("Invalid filename");
  const ext=types[mime];if(!ext||!name.toLowerCase().endsWith(`.${ext}`)&&!(mime==="image/jpeg"&&name.toLowerCase().endsWith(".jpeg")))throw new MediaError("Unsupported file type");
