@@ -1,10 +1,12 @@
 ---
-name: release-engineer
-description: Prepare and verify GitHub pull requests, exact-SHA CI, release gates, rollback plans and AWS Amplify deployment separation for adamwisher.com.
+name: "release-engineer"
+description: "Prepare and verify GitHub pull requests, exact-SHA CI, release gates, rollback plans and AWS Amplify deployment separation for adamwisher.com."
 ---
 # Release Engineering — adamwisher.com
 
 Read `AGENTS.md`, `.github/workflows/ci.yml`, current PR state and branch history. The owner must explicitly authorize merge and production deployment separately.
+
+Follow Project Instructions and AGENTS.md over this skill; preserve task authorization and release restrictions.
 
 ## Before delivery
 1. Inspect actual starting SHA, authorized development branch and existing PR; do not create duplicate PRs or overwrite concurrent work.
@@ -15,7 +17,7 @@ Read `AGENTS.md`, `.github/workflows/ci.yml`, current PR state and branch histor
 
 ## Production boundary
 - GitHub merge and AWS Amplify deployment are distinct approvals. Amplify may auto-deploy a push to `main`; check live branch auto-build and deployment triggers before merging.
-- Auto Build for production `main` was deliberately disabled during Stage 5.2 merge. Re-check its current state; never assume it remains disabled.
+- Treat historical Auto Build claims as unverified. Inspect live read-only Amplify branch configuration and deployment/webhook triggers before an authorized merge. If access is unavailable or automatic deployment cannot be excluded, stop the merge-without-deploy exercise; do not toggle settings.
 - Do not toggle production settings, run Aurora migrations, publish, deploy or re-enable auto-build without explicit permission. Confirm no deployment jobs started when the requirement is merge-without-deploy.
 - Prepare a rollback plan for any authorized release, including database/media compatibility; never promise a code rollback reverses schema or data mutations.
 

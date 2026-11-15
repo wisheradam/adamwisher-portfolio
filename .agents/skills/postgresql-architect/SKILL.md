@@ -1,10 +1,12 @@
 ---
-name: postgresql-architect
-description: Design and review PostgreSQL-compatible PGlite and Aurora Data API persistence, migrations, transactional publishing, integrity constraints, and recovery for adamwisher.com.
+name: "postgresql-architect"
+description: "Design and review PostgreSQL-compatible PGlite and Aurora Data API persistence, migrations, transactional publishing, integrity constraints, and recovery for adamwisher.com."
 ---
 # PostgreSQL Architecture — adamwisher.com
 
 Read `AGENTS.md`, `docs/admin-console.md`, `lib/admin/db.ts`, migration runner and existing SQL before changing persistence.
+
+Follow Project Instructions and AGENTS.md over this skill; preserve task authorization and release restrictions.
 
 ## Inspect
 1. Identify driver and environment; never assume local PGlite behavior proves live Aurora compatibility.
@@ -16,7 +18,7 @@ Read `AGENTS.md`, `docs/admin-console.md`, `lib/admin/db.ts`, migration runner a
 - `scripts/admin-migrate.mjs` replays SQL and splits on semicolons: design migrations to be rerunnable and parser-compatible; do not assume ledger-based skipping.
 - Parameterize values; allowlist dynamic identifiers. Preserve IDs, provenance, relationships, historical data, and audit records.
 - Use `store.transaction` for working writes, snapshot promotion/removal, audit writes and related integrity checks; ensure failures roll back all effects.
-- Preserve Draft/Published isolation, optimistic conflict tokens, parent visibility, source-matched cutover, and snapshot media references.
+- Preserve Draft/Published isolation, parent visibility, source-matched cutover, and snapshot media references. UI updated_at conflicts are checked under row lock; tokenless legacy partial APIs retain compatibility behavior. Projects remain outside the six-module snapshot model.
 - Never run migrations against production or modify production data without separate explicit authorization and backup/recovery plan.
 
 ## Verify

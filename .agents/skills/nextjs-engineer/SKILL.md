@@ -1,10 +1,10 @@
 ---
-name: nextjs-engineer
-description: Implement or review Next.js App Router pages, route handlers, metadata, UI, accessibility, and performance in adamwisher.com. Use for frontend, server rendering, SEO, and public/Admin application changes.
+name: "nextjs-engineer"
+description: "Implement or review Next.js App Router pages, route handlers, metadata, UI, accessibility, and performance in adamwisher.com. Use for frontend, server rendering, SEO, and public/Admin application changes."
 ---
 # Next.js Engineering — adamwisher.com
 
-Read repository-root `AGENTS.md`, current task scope, and relevant existing code before edits. This skill supplements, never overrides, Project Instructions.
+Read repository-root `AGENTS.md`, current task scope, and relevant existing code before edits. This skill supplements, never overrides, Project Instructions or AGENTS.md.
 
 ## Inspect
 1. Confirm branch, HEAD, relevant `app/`, `components/`, `lib/`, and existing tests.
