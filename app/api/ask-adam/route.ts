@@ -4,6 +4,7 @@ import type {
   AskAdamResponse,
   AskAdamErrorResponse,
 } from "@/types/ask-adam";
+import { publicFlag } from "@/lib/admin/public-flags";
 import { retrieveKnowledge } from "@/lib/knowledge/retrieve";
 import { answerWithConfiguredLlm, buildFallbackAnswer, hasSufficientEvidence } from "@/lib/knowledge/answer";
 
@@ -11,6 +12,7 @@ export const runtime = "nodejs";
 const MAX_QUESTION_LENGTH = 500;
 
 export async function POST(req: NextRequest) {
+  if(!await publicFlag("enable_ask_adam"))return NextResponse.json({error:"Ask Adam is unavailable."},{status:503});
   let body: AskAdamRequest;
 
   try {

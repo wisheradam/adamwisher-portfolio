@@ -1,0 +1,4 @@
+"use client";
+import { useEffect,useState } from "react";
+type Event={id:string;actor_id:string;action:string;entity_type:string;entity_id:string;created_at:string};
+export function AuditPanel(){const [events,setEvents]=useState<Event[]>([]),[error,setError]=useState("");useEffect(()=>{fetch("/api/admin/audit").then(async response=>{if(!response.ok)throw new Error();setEvents((await response.json()).events);}).catch(()=>setError("Unable to load audit events"));},[]);return <section><h1>Audit Log</h1>{error&&<p role="alert">{error}</p>}<div className="admin-card admin-table"><table><thead><tr><th scope="col">When</th><th scope="col">Actor</th><th scope="col">Action</th><th scope="col">Entity</th></tr></thead><tbody>{events.map(e=><tr key={e.id}><td>{new Date(e.created_at).toLocaleString()}</td><td>{e.actor_id}</td><td>{e.action}</td><td>{e.entity_type} · {e.entity_id}</td></tr>)}</tbody></table>{!events.length&&<p>No audit events yet.</p>}</div></section>;}

@@ -35,3 +35,136 @@ For browser tests, install the locked Playwright version with `npm ci`, then run
 GitHub Actions uses the existing Portfolio CI workflow on pull requests. It runs install, lint, type-check, build, Admin integration, installs the Playwright Chromium revision pinned by `package-lock.json` with its supported OS dependencies, migrates an isolated test database, and runs all browser tests. Failed browser evidence is uploaded as an artifact. The feature branch is not an Amplify production branch; the `main` branch has automatic production builds, so do not merge this Draft PR to test CI.
 
 In this workspace, Playwright's CDN download returned a truncated/invalid archive through the network proxy. The Debian Chromium 156 binary exists, but its launch fails because the execution sandbox denies Chromium's process singleton socket (`Operation not permitted`). The browser suite therefore has **not** passed locally. GitHub Actions run #68 executed the pinned Chromium and passed all 22 then-existing browser tests. The subsequent pagination and signed-expiry coverage must pass CI before its count is updated. RBAC remains unimplemented, so role-specific E2E is blocked. Aurora Data API runtime and backup/restore validation remain **BLOCKED — live Aurora environment unavailable**; no RDS cluster was found in the connected account's eu-north-1 region.
+
+## Stage 5 security and Apps publishing draft
+
+Apply `npm run admin:migrate` to a nonproduction database and explicitly run `npm run admin:bootstrap` with `ADMIN_BOOTSTRAP_EMAIL` and a scrypt `ADMIN_PASSWORD_HASH` to create the first account only when no users exist. This command does not convert old HMAC sessions or infer an email; old sessions stop working after deployment, and the existing credential hash is reused only for the explicit bootstrap. Never run it against production until the database, migration, and rollback plan have been reviewed. The new password login uses email plus password, stores only a hash, and issues an opaque random token whose hash is held in `admin_sessions`. Logout, account changes, and deactivation revoke sessions. Sessions expire after eight hours. The login limit is stored in the shared database per normalized email: up to five attempts in a 15-minute window, then a 15-minute temporary block. Unknown accounts return the same credential error. User creation, role changes, deactivation and security events are audited without passwords or tokens.
+
+Permissions live in `lib/admin/permissions.ts`. Super Admin controls users, publishing, deletion, audit and settings; Editor can view, create, edit drafts and preview; Read Only can view content but cannot preview drafts or mutate. Server routes enforce permissions. Users are added by a Super Admin with a temporary password through `/admin/users`; distribute that password securely. A self-service password change and invitation delivery flow remain future hardening work. The last active Super Admin cannot be deactivated or demoted.
+
+Apps use the existing `products` table with an added `PUBLISHED` state and `published_at`. Existing `RELEASED` records remain private by default; no preexisting product is automatically published. Only `PUBLISHED` plus `PUBLIC` and nondeleted records appear at `/apps` and `/apps/{slug}`. Authorized previews live under `/admin/preview/apps/{id}`. Publication and unpublication are explicit Admin operations and are audited. This branch has no production migration or deployment.
+
+## Stage 5 review branch and module architecture
+
+Stage 5 is isolated on `feature/admin-console-stage-5` in Draft PR #10. PR #9 was merged independently before this branch was cut from `main`. No Stage 5 migration was run against production and no production deployment is authorized by this branch. The current code adds `004_modules.sql` to the explicit migration sequence; run it only against an isolated local/test database. Rerunning the migration command on that database is safe. The migration has separate relational tables for media, experience, education, certifications, releases, timeline events, SEO metadata, redirects and feature flags. Related records use foreign keys. Editorial records have Draft/Review/Published/Archived status, visibility, `published_at`, soft deletion and transactional audit writes. Release records require a Project or App relationship. SEO paths and internal redirect paths are validated, including loop detection. Only Super Admin can change flags or redirects; editors can manage draft content, and publishing requires Super Admin. Read Only can view records.
+
+The shared UI under `/admin/{experience,education,certifications,releases,timeline,seo,redirects,feature-flags}` uses server-validated API routes at `/api/admin/modules/{module}` and `/api/admin/modules/{module}/{id}`. It has search, pagination, field forms, error states, confirmation on publication/deletion, and audit events. The data model is prepared for public integration, but the existing static Experience/Education/SEO pages have deliberately not been overwritten. This prevents partial or duplicated factual migration. **The new Experience, Education, Certifications, Releases and Timeline records are not yet rendered on public pages.** **SEO overrides, redirect rules and feature flags are stored and audited but are not yet applied by the public runtime.** Those modules are administrative configuration only in this branch, and must be treated as partial until public integration and end-to-end tests are completed. Existing static content and URLs remain the source of truth. No fabricated records or releases are seeded.
+
+The local Media Library at `/admin/media` uses `ADMIN_MEDIA_PATH` (default `.data/admin-media`), outside Git. It accepts PNG, JPEG, WebP and PDF up to 10 MB, validates extension, MIME and file signatures, assigns random storage keys, serves files only to authenticated Admin users with `nosniff`, private cache controls and a sandbox CSP, and audits upload, replacement, metadata editing and deletion. Its detail endpoint reports active usage; deletion of any referenced asset is refused. Soft-deleted media files remain on disk for recovery. SVG is rejected. The local filesystem is suitable for a durable workstation/test directory, **not** the ephemeral Amplify server runtime. In `aurora-data-api` mode media operations return 503 until an object storage adapter and bucket are reviewed and configured. Production storage, backup and serving are therefore blocked. Do not point `ADMIN_MEDIA_PATH` at production's transient filesystem. No bucket or new paid resource was created.
+
+Users can now change their own password under `/admin/settings`; the server verifies the current scrypt hash, stores a new salted hash, revokes all account sessions in the same transaction and writes an audit event without credentials. The user signs in again. Super Admins still create accounts with a temporary password and must communicate it through a secure channel. Account invitations and forced first-login change are not implemented. Login limits remain per normalized email in the shared database.
+
+### Stage 5 local review
+
+Use Node 20 and `npm ci`. Configure a **separate local** PGlite path, random `ADMIN_SESSION_SECRET`, explicit `ADMIN_BOOTSTRAP_EMAIL`, and a matching `ADMIN_PASSWORD_HASH` scrypt hash in `.env.local`; keep their actual values out of Git and PR descriptions. Run `npm run admin:migrate`, `npm run admin:bootstrap`, then `npm run dev`. Open `http://localhost:3000/admin/login` and sign in with the bootstrap email and matching password. Use only local test data. After a user changes a password, the bootstrap command will not reset it. To start fresh, back up and replace the isolated test database explicitly. Set `ADMIN_MEDIA_PATH` to a persistent ignored directory for local uploads. No live Aurora environment is available for this branch, so the preview is local only.
+
+Run `npm run typecheck`, `npm run lint`, `npm run build`, `npm run test:admin-data`, and `npm run test:admin-security`. The security suite now exercises CRUD for all eight structured modules, role boundaries, publication rules, redirect loops, canonical checks, media MIME denial, local upload and private access, reference protection, and password change/revocation. GitHub Actions also runs the real Playwright Chromium browser suite against an isolated PGlite store. The review screenshot test writes desktop Experience (1440 px) and mobile Media (390 px) captures to the `admin-review-screenshots` CI artifact. The same workspace browser limitation noted in Stage 4 remains; only CI execution can establish a browser PASS here. Automated axe checks and responsive flows do not establish full WCAG compliance or physical iPhone/Safari validation.
+
+### Remaining release blockers
+
+- Public integration, factual migration and publish rendering for Experience/Education/Certifications/Releases/Timeline are unfinished. Existing website pages remain static.
+- SEO overrides, redirect manager rules and feature flags are not connected to public request handling. An Enabled row has no runtime effect yet.
+- Media has no durable production object storage adapter; Aurora mode rejects it. The local adapter is for review only.
+- The Aurora Data API runtime and live Aurora backup/restore remain **BLOCKED — live Aurora environment unavailable**. No suitable RDS cluster was found in the connected account's eu-north-1 region; other accounts/regions were not inventoried.
+- Preview deployment is not configured. Stage 5 should remain a Draft PR; merging it would trigger Amplify production deployment from `main` and is not permitted for this review.
+
+## Stage 5.1 incremental cutover
+
+`PUBLIC_CONTENT_SOURCE=static` is the default. It preserves current public behavior and avoids public database reads. In an isolated review environment, set `PUBLIC_CONTENT_SOURCE=database` only after running migrations. The server then evaluates `show_apps` and `enable_ask_adam` flags from `feature_flags`; missing rows preserve the existing behavior. A configured database failure is surfaced rather than silently ignored. The Apps index returns 404 when disabled; the Ask Adam API returns 503 when disabled. Flags are not authorization controls. Other flags, factual content cutover, SEO overrides, redirects and production object storage remain incomplete. Never set this variable in production as a shortcut around migration and reconciliation.
+
+## Stage 5.2 knowledge import checkpoint
+
+The current public factual sources are `data/knowledge/experience.ts` (9 records), `education.ts` (2 records), and `certifications.ts` (48 course/training records). Public Education currently renders these files directly; About is narrative JSX. Case studies and page metadata remain source controlled. No public cutover is enabled by this importer.
+
+For an **isolated PGlite review database only**, migrate and bootstrap an Admin user, then run `npm run admin:import-knowledge`. The command uses stable UUIDs derived from source IDs, inserts only missing rows, preserves source month precision (`YYYY-MM`), sets published/public for source records marked public, preserves ordering, and prints counts and field differences. Rerunning it does not overwrite Admin edits. It exits nonzero on a reconciliation difference; inspect it before any cutover. `npm run test:admin-knowledge` creates and destroys its own test database, verifies counts 9/2/48, idempotency, month precision, and preservation of an edited row. The imported tables are **not yet authoritative for public rendering**. Do not run this script against production or treat zero differences as a complete public cutover. Mapping of richer curriculum details, source evidence and static asset references remains unresolved.
+
+## Stage 5.2 public rendering checkpoint
+
+The importer prints a source-ID fingerprint after reconciliation. In an isolated review environment only, set `PUBLIC_KNOWLEDGE_CUTOVER_SHA` to that fingerprint after verifying zero differences. Without a matching fingerprint, Education retains its static records and About keeps its current narrative. With it, Education and Courses render only `PUBLISHED` + `PUBLIC` database records in stored order; About adds a managed Experience section with the same visibility filter. The established curriculum disclosures still use the static detail source for the two known education IDs. Missing or unavailable database rows after cutover fail visibly rather than silently falling back. The test starts a real Next server, verifies an Admin-edited title appears, and checks that a Draft institution is absent.
+
+Published releases linked to a public App are available at `/apps/{slug}/changelog` only when `PUBLIC_CONTENT_SOURCE=database`; a public App shows a release-history link only when at least one published public release exists. `/history` requires the enabled `show_history` flag and at least one published public timeline event. Empty or private routes return 404. Existing public pages remain unchanged while cutover variables are unset. These routes are covered by real HTTP integration checks. SEO overrides and redirect execution remain unfinished; do not describe Stage 5.2 as complete.
+
+## Stage 5.2 SEO and redirect review runtime
+
+With `PUBLIC_CONTENT_SOURCE=database`, route-specific SEO overrides now apply to About, Education, and published App detail metadata. Existing defaults remain when no override exists. The canonical URL is constrained to the matching AdamWisher.com path by Admin validation; robots index/follow flags and Open Graph title/description are applied by Next.js metadata. Broader static case-study and home route metadata, plus Open Graph media, remain to be integrated.
+
+The redirect runtime requires both `PUBLIC_CONTENT_SOURCE=database` and `PUBLIC_REDIRECTS_ENABLED=1`. Edge middleware calls an internal Node route to read enabled rules and returns 301/302. It excludes Admin, API, Projects authentication and Next assets from matching; the manager rejects loops, self redirects, unsafe schemes and protected destinations. Missing rules continue normally. If the lookup fails, the original request continues rather than redirecting to an unverified target. This adds one internal lookup per public request when enabled, so performance and production infrastructure need review before enabling. Keep the switch unset in production. Integration and browser tests assert real status and Location headers, not just stored rows.
+
+### Checkpoint 1 classification follow-up
+The source inventory contains 44 courses and four training programs, not 48 professional certifications. Import now stores these classifications in the existing credential_type field. Public learning rows show the type and descriptions, support HTTPS credential links, and preserve stored ordering rather than sorting again by date. No new tables were introduced. Reconciliation now compares every row regardless of its last editor and checks order and publication state. Source evidence lacks public locators for 50 records (all 48 learning records and two others); the importer reports these explicitly as unresolved source limitations. It never fabricates URLs or replaces Admin edits. Existing imported generic classifications are reported as differences rather than silently overwritten. Reviewers must resolve those differences explicitly before cutover. Checkpoint 1 remains partial until browser/mobile and certification-fixture acceptance checks pass.
+
+
+Checkpoint 1 browser acceptance uses synthetic API fixtures only in the isolated CI database. Two Chromium viewport tests (390 and 320) check public classification, descriptions, order, missing media/evidence links, HTTPS credential links, draft exclusion and overflow under light/dark system preferences. A separate server checks absent/mismatched cutover with an unavailable database path. CI imports factual fixtures and enables only the matching source fingerprint. These additions require exact-commit CI validation before PASS.
+
+
+### Publication isolation foundation (not activated)
+Migration 005_publication_snapshots adds a separate payload/revision table keyed by stable entity type and ID for the six supported modules. It copies only existing PUBLISHED, nondeleted rows without mutating working records, references, or audit history. Historical approval cannot be reconstructed: the precise current legacy row is retained, not an invented earlier revision. The backfill checks the migration ledger because this runner replays SQL; subsequent reruns cannot resurrect removed snapshots. `node scripts/test-admin-publication.mjs` validates five legacy/isolation/rerun assertions in isolated PGlite. Runtime writers and public readers are not switched yet; the shared mutable publication defect remains until atomic snapshot promotion/unpublish, UI actions, RBAC and browser lifecycle coverage are integrated. Do not enable production cutover.
+
+### Stage 5.2 publication runtime (review only)
+
+Migration `005_publication_snapshots` is now consumed by all six managed modules.
+Working rows retain their IDs, relationships, provenance and editable data. The
+migration snapshots the current legacy PUBLISHED row; historical approval cannot
+be reconstructed, so no older approved version is invented. Migration reruns do
+not recreate removed snapshots. No production migration is authorized.
+
+`publication.ts` promotes validated working data with a snapshot upsert inside
+its working-row transaction. The same transaction writes the audit event; any
+failure rolls back all three. Explicit `status=PUBLISHED` promotes data;
+`status=ARCHIVED` removes only the public snapshot and retains the working row.
+DRAFT/REVIEW saves preserve an existing snapshot. Republishing promotes the
+current persisted working version when using the row action. Form submission
+never implicitly republishes an already published App or structured record.
+Soft deletion also removes the snapshot atomically. Repeated unpublish is safe;
+repeated publish creates another explicit snapshot revision. Audit actions are
+DRAFT_SAVED, PUBLISHED, PUBLICATION_UPDATED, UNPUBLISHED, REPUBLISHED and
+UNPUBLISH_UNCHANGED. Legacy unpublish history is retained in the audit log.
+
+Admin badges compare persisted content with its public snapshot and show
+Unpublished, Published, or Published with unpublished changes. Row actions use
+persisted data, not unsaved form edits. UI writes include the last updated_at;
+the repository checks it under row lock and rejects stale edits with 409. Legacy
+partial API writes without a token retain their previous compatibility policy.
+SUPER_ADMIN can edit, publish and unpublish; EDITOR can save working changes but
+cannot promote/remove snapshots; READ_ONLY cannot mutate. Server handlers enforce
+permissions regardless of button visibility. Existing Project behavior is outside
+this six-module migration and is preserved.
+
+Experience, Education and Certifications retain fingerprint-gated static fallback.
+Apps, App metadata, changelogs and History consume snapshots. Releases/Timeline
+exclude entries whose referenced App, Release or Project is not public. Snapshot
+media references prevent deletion even after working references change. Public
+routes already use dynamic request rendering: no new cross-request snapshot cache
+or external invalidation service is introduced. The next request after a committed
+write sees its public state; there is no cache-invalidation write that can fail
+separately. An already open document needs navigation/refresh to show the change.
+There are no public JSON content endpoints for these six modules. Admin APIs and
+working previews remain authenticated; metadata uses the published App snapshot.
+
+Newly imported factual records receive their initial snapshot transactionally.
+Import reruns never resnapshot an existing Admin-edited or unpublished row. The
+44 Courses and four Training programs remain unchanged. Synthetic credentials
+exist only in disposable test databases and browser fixtures, with cleanup.
+
+Validation commands: `node scripts/test-admin-publication.mjs` (migration),
+`node scripts/test-publication-runtime.mjs` (six-module isolation/rollback),
+`npm run test:admin-data`, `npm run test:admin-knowledge`,
+`npm run test:admin-security`, `npm run lint`, `npm run typecheck`,
+`npm run build`, and `npm run test:e2e`.
+`node scripts/prepare-publishing-review.mjs` creates an isolated local database
+and a private temporary shell environment for repeatable browser runs; never use
+production credentials or an existing database path. The browser lifecycle suite
+creates and edits through Admin, checks anonymous public HTML and rendered pages,
+refreshes Drafts, publishes v2, unpublishes, republishes, checks the Audit UI and
+removes fixtures. Certification lifecycle screenshots cover 390/320px light/dark.
+Browser acceptance and exact-commit CI must be verified before either checkpoint
+is marked PASS. Local Chromium launch is restricted in the execution container;
+GitHub CI provides the real Chromium run. Live Aurora validation remains Stage 5.3.
+
+Runtime fault coverage now uses real PostgreSQL CHECK failures in snapshot and
+audit writes, including a failed Unpublish after snapshot deletion. All six
+modules must retain their prior snapshot and working state after rollback.
+The role browser test verifies Editor Draft saves, denied publish/unpublish
+requests, Read Only controls/API denial, and session revocation while editing.
+The certification lifecycle also opens a static-cutover server while the managed
+v2 Draft exists, confirming static content remains authoritative.

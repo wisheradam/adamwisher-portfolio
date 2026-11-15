@@ -1,0 +1,4 @@
+import { NextRequest,NextResponse } from "next/server";
+import { store } from "@/lib/admin/db";
+export const runtime="nodejs";export const dynamic="force-dynamic";
+export async function GET(request:NextRequest){if(process.env.PUBLIC_CONTENT_SOURCE!=="database"||process.env.PUBLIC_REDIRECTS_ENABLED!=="1")return new NextResponse(null,{status:204});const path=request.nextUrl.searchParams.get("path")??"";if(!/^\/(?!\/)[a-zA-Z0-9/_-]*\/?$/.test(path)||/^\/(admin|api|projects|_next)(\/|$)/.test(path))return new NextResponse(null,{status:204});const row=(await store.query("SELECT destination_path,status_code FROM redirects WHERE source_path=$1 AND enabled=TRUE AND deleted_at IS NULL LIMIT 1",[path]))[0];if(!row)return new NextResponse(null,{status:204});return NextResponse.json({destination:row.destination_path,status:Number(row.status_code)},{headers:{"cache-control":"no-store"}});}

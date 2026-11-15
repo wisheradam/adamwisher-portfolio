@@ -23,6 +23,8 @@ export interface Evidence {
 export interface KnowledgeRecord {
   id: string;
   category: KnowledgeCategory;
+  learningType?: "Course" | "Training program" | "Professional certification" | "Other learning activity";
+  credentialUrl?: string;
   title: string;
   summary: string;
   facts?: string[];

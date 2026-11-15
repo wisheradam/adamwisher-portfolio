@@ -1,12 +1,13 @@
 import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { createHmac } from "node:crypto";
+
 
 const password = process.env.ADMIN_TEST_PASSWORD;
 if (!password) throw new Error("Set ADMIN_TEST_PASSWORD to the credential configured for the isolated test server");
 const slug = () => `qa-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 async function signIn(page:import("@playwright/test").Page) {
   await page.goto("/admin/login");
+  await page.getByLabel("Email").fill(process.env.ADMIN_TEST_EMAIL??"admin@example.test");
   await page.getByLabel("Password").fill(password!);
   await page.getByRole("button",{name:"Sign in"}).click();
   await expect(page).toHaveURL(/\/admin$/);
@@ -15,7 +16,7 @@ async function signIn(page:import("@playwright/test").Page) {
 test("admin session, invalid login, logout and anonymous API protection",async({page,request})=>{
   const anonymous=await request.get("/api/admin/records/projects");expect(anonymous.status()).toBe(401);
   await page.goto("/admin");await expect(page).toHaveURL(/\/admin\/login$/);
-  await page.getByLabel("Password").fill("invalid-credential");await page.getByRole("button",{name:"Sign in"}).click();
+  await page.getByLabel("Email").fill(process.env.ADMIN_TEST_EMAIL??"admin@example.test");await page.getByLabel("Password").fill("invalid-credential");await page.getByRole("button",{name:"Sign in"}).click();
   await expect(page.locator("form").getByRole("alert")).toContainText("Sign in failed");
   await signIn(page);await expect(page.getByRole("heading",{name:"Overview"})).toBeVisible();
   await page.getByRole("button",{name:"Sign out"}).click();await expect(page).toHaveURL(/\/admin\/login$/);
@@ -26,11 +27,7 @@ test("invalid and expired admin sessions cannot access content",async({page})=>{
   await page.context().addCookies([{name:"adam_admin_session",value:"invalid",domain:"127.0.0.1",path:"/"}]);
   await page.goto("/admin/projects");await expect(page).toHaveURL(/\/admin\/login$/);
   const denied=await page.request.get("/api/admin/records/projects");expect(denied.status()).toBe(401);
-  const secret=process.env.ADMIN_SESSION_SECRET;
-  if(!secret) throw new Error("Admin test session secret is required");
-  const body="v1.super-admin.1";
-  const expired=`${body}.${createHmac("sha256",secret).update(body).digest("hex")}`;
-  await page.context().addCookies([{name:"adam_admin_session",value:expired,domain:"127.0.0.1",path:"/"}]);
+  await page.context().addCookies([{name:"adam_admin_session",value:"0".repeat(64),domain:"127.0.0.1",path:"/"}]);
   await page.goto("/admin/projects");await expect(page).toHaveURL(/\/admin\/login$/);
   expect((await page.request.get("/api/admin/records/projects")).status()).toBe(401);
   await signIn(page);
@@ -66,7 +63,7 @@ test("project draft, edit, preview, publish, search, unpublish and soft delete",
   page.once("dialog",dialog=>dialog.accept());await form.getByLabel("Status").selectOption("PUBLISHED");await form.getByRole("button",{name:"Publish"}).click();
   await expect(page.getByRole("cell",{name:"PUBLISHED"})).toBeVisible();
   const publicPage=await request.get(`/work/${projectSlug}`);expect(publicPage.status()).toBe(200);expect(await publicPage.text()).toContain("Edited summary");
-  await page.getByRole("button",{name:"Edit"}).click();await form.getByLabel("Status").selectOption("DRAFT");await form.getByRole("button",{name:"Save draft"}).click();
+  await page.locator("tbody tr").filter({hasText:projectSlug}).getByRole("button",{name:"Edit"}).click();await form.getByLabel("Status").selectOption("DRAFT");await form.getByRole("button",{name:"Save draft"}).click();
   expect((await request.get(`/work/${projectSlug}`)).status()).toBe(404);
   const rows=await page.request.get("/api/admin/records/projects?q="+projectSlug);const record=(await rows.json()).records[0];
   expect((await page.request.delete(`/api/admin/records/projects/${record.id}`,{headers:{Origin:new URL(page.url()).origin}})).status()).toBe(204);
@@ -88,7 +85,7 @@ test("apps and tools creation, editing and search remain private",async({page,re
   const form=page.locator("form.admin-editor");await form.getByLabel("Title").fill("QA App");await form.getByLabel("Slug").fill(name);
   await form.getByLabel("Type").selectOption("AI_TOOL");await form.getByRole("button",{name:"Save draft"}).click();
   await page.getByLabel("Search").fill(name);await expect(page.getByRole("cell",{name:/QA App/})).toBeVisible();
-  await page.getByRole("button",{name:"Edit"}).click();await form.getByLabel("Summary").fill("Updated app");await form.getByRole("button",{name:"Save draft"}).click();
+  await page.locator("tbody tr").filter({hasText:name}).getByRole("button",{name:"Edit"}).click();await form.getByLabel("Summary").fill("Updated app");await form.getByRole("button",{name:"Save draft"}).click();
   expect((await request.get(`/apps/${name}`)).status()).toBe(404);
 });
 
@@ -105,3 +102,99 @@ for(const width of [1440,1280,768,390,320]) {
     }
   });
 }
+
+test("Super Admin manages roles; Editor and Read Only API restrictions persist",async({page,browser})=>{
+  await signIn(page);const origin=new URL(page.url()).origin,tag=slug();
+  const provision=async(role:string)=>{const email=`${role.toLowerCase()}-${tag}@example.test`,pass=`Temporary-${tag}-Secret`;const r=await page.request.post("/api/admin/users",{headers:{Origin:origin},data:{email,password:pass,role}});expect(r.status()).toBe(201);return {...await r.json(),pass};};
+  const editor=await provision("EDITOR"),reader=await provision("READ_ONLY");
+  await page.goto("/admin/users");await expect(page.getByRole("heading",{name:"Users"})).toBeVisible();await expect(page.getByText(editor.email)).toBeVisible();
+  const editorContext=await browser.newContext(),editorPage=await editorContext.newPage();await editorPage.goto("/admin/login");await editorPage.getByLabel("Email").fill(editor.email);await editorPage.getByLabel("Password").fill(editor.pass);await editorPage.getByRole("button",{name:"Sign in"}).click();await expect(editorPage).toHaveURL(/\/admin$/);
+  await editorPage.goto("/admin/projects");await expect(editorPage.getByRole("button",{name:"New project"})).toBeVisible();
+  expect((await editorPage.request.get("/api/admin/users")).status()).toBe(403);
+  const draft=await editorPage.request.post("/api/admin/records/projects",{headers:{Origin:origin},data:{slug:`editor-${tag}`,title:"Editor draft",status:"DRAFT"}});expect(draft.status()).toBe(201);const project=await draft.json();
+  expect((await editorPage.request.patch(`/api/admin/records/projects/${project.id}`,{headers:{Origin:origin},data:{status:"PUBLISHED"}})).status()).toBe(403);
+  const readerContext=await browser.newContext(),readerPage=await readerContext.newPage();await readerPage.goto("/admin/login");await readerPage.getByLabel("Email").fill(reader.email);await readerPage.getByLabel("Password").fill(reader.pass);await readerPage.getByRole("button",{name:"Sign in"}).click();await expect(readerPage).toHaveURL(/\/admin$/);
+  await readerPage.goto("/admin/projects");await expect(readerPage.getByRole("button",{name:"New project"})).toHaveCount(0);
+  expect((await readerPage.request.post("/api/admin/records/projects",{headers:{Origin:origin},data:{slug:`reader-${tag}`,title:"Denied"}})).status()).toBe(403);
+  expect((await readerPage.goto(`/admin/preview/${project.id}`))?.status()).toBe(404);
+  await page.request.patch(`/api/admin/users/${editor.id}`,{headers:{Origin:origin},data:{role:"READ_ONLY",active:true}});
+  expect((await editorPage.request.get("/api/admin/records/projects")).status()).toBe(401);
+  await editorContext.close();await readerContext.close();
+});
+
+test("Apps Draft, Preview, Publish and Unpublish are server enforced",async({page,request})=>{
+  await signIn(page);const appSlug=slug();await page.goto("/admin/apps");await page.getByRole("button",{name:"New app"}).click();const form=page.locator("form.admin-editor");
+  await form.getByLabel("Title").fill("Stage Five App");await form.getByLabel("Slug").fill(appSlug);await form.getByLabel("Type").selectOption("WEB_APP");await form.getByLabel("Visibility").selectOption("PUBLIC");await form.getByRole("button",{name:"Save draft"}).click();
+  expect((await request.get(`/apps/${appSlug}`)).status()).toBe(404);
+  await page.getByLabel("Search").fill(appSlug);const row=page.locator("tbody tr").filter({hasText:appSlug});await expect(row).toHaveCount(1);await row.getByRole("link",{name:"Preview"}).click();await expect(page.getByRole("heading",{name:"Stage Five App"})).toBeVisible();
+  await page.goBack();await page.getByLabel("Search").fill(appSlug);const matchingRow=page.locator("tbody tr").filter({hasText:appSlug});await expect(matchingRow).toHaveCount(1);await matchingRow.getByRole("button",{name:"Edit"}).click();
+  await form.getByRole("button",{name:"Cancel",exact:true}).click();await matchingRow.getByRole("button",{name:"Publish",exact:true}).click();await expect(matchingRow).toContainText("Published");
+  expect((await request.get(`/apps/${appSlug}`)).status()).toBe(200);
+  await page.getByRole("button",{name:"Unpublish",exact:true}).click();await expect(page.getByRole("cell",{name:"Unpublished",exact:true})).toBeVisible();
+  expect((await request.get(`/apps/${appSlug}`)).status()).toBe(404);
+});
+
+test("login limits repeated failures without revealing account existence",async({request})=>{
+  const email=`unknown-${slug()}@example.test`,base="http://127.0.0.1:3100";
+  for(let n=0;n<5;n++)expect((await request.post("/api/admin/login",{headers:{Origin:base},data:{email,password:"incorrect"}})).status()).toBe(401);
+  expect((await request.post("/api/admin/login",{headers:{Origin:base},data:{email,password:"incorrect"}})).status()).toBe(429);
+});
+
+test("structured Experience and Education records remain draft until explicit publication",async({page})=>{
+  await signIn(page);const tag=slug();await page.goto("/admin/experience");
+  await page.getByRole("button",{name:"New record"}).click();const form=page.locator("form.admin-editor");
+  await form.getByLabel("Company",{exact:true}).fill(`Company ${tag}`);await form.getByLabel("Title",{exact:true}).fill(`Role ${tag}`);
+  await form.getByRole("button",{name:"Save draft",exact:true}).click();await expect(page.getByRole("status")).toContainText("Saved successfully");
+  await page.getByLabel("Search Experience").fill(tag);await expect(page.locator("tbody tr")).toHaveCount(1);
+  await page.getByRole("button",{name:"Edit"}).click();await expect(form.getByLabel("Company",{exact:true})).toHaveValue(`Company ${tag}`);
+  await form.getByLabel("Status").selectOption("REVIEW");await form.getByRole("button",{name:"Save draft",exact:true}).click();
+  await expect(page.getByRole("cell",{name:"Unpublished",exact:true})).toBeVisible();
+  const savedReview=await page.request.get("/api/admin/modules/experience?q="+tag);expect((await savedReview.json()).records[0].status).toBe("REVIEW");
+  await page.goto("/admin/education");await page.getByRole("button",{name:"New record"}).click();
+  await page.getByLabel("Institution",{exact:true}).fill(`School ${tag}`);await page.getByLabel("Program",{exact:true}).fill(`Program ${tag}`);
+  await page.locator("form.admin-editor").getByRole("button",{name:"Save draft",exact:true}).click();await expect(page.getByRole("status")).toContainText("Saved successfully");
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(1280);
+});
+
+test("media rejects unsupported files and keeps preview behind login",async({page,request})=>{
+  await signIn(page);await page.goto("/admin/media");await expect(page.getByRole("heading",{name:"Media Library"})).toBeVisible();
+  await page.getByLabel(/Upload PNG/).setInputFiles({name:"unsafe.svg",mimeType:"image/svg+xml",buffer:Buffer.from("<svg/>")});
+  await expect(page.getByText("Unsupported file type",{exact:true})).toBeVisible();
+  expect((await request.get("/api/admin/media")).status()).toBe(401);
+});
+
+test("capture review screenshots of the Admin console",async({page},testInfo)=>{
+  await page.setViewportSize({width:1440,height:900});await signIn(page);await page.goto("/admin/experience");
+  await expect(page.getByRole("heading",{name:"Experience"})).toBeVisible();
+  await expect(page.locator(".site-footer")).toBeHidden();
+  await page.screenshot({path:testInfo.outputPath("admin-experience-desktop.png"),fullPage:true});
+  await page.evaluate(()=>localStorage.setItem("adam-theme","dark"));await page.reload();
+  expect(await page.locator(".admin-card").first().evaluate(el=>getComputedStyle(el).backgroundColor)).toBe("rgb(36, 50, 68)");
+  await page.screenshot({path:testInfo.outputPath("admin-experience-dark.png"),fullPage:true});
+  await page.evaluate(()=>localStorage.setItem("adam-theme","light"));await page.reload();
+  await page.setViewportSize({width:390,height:844});await page.goto("/admin/media");
+  await expect(page.getByRole("heading",{name:"Media Library"})).toBeVisible();
+  await expect(page.locator(".site-footer")).toBeHidden();
+  await page.screenshot({path:testInfo.outputPath("admin-media-mobile.png"),fullPage:true});
+});
+
+test("public feature flags change Apps and Ask Adam behavior after explicit cutover",async({page,request})=>{
+  await signIn(page);const origin=new URL(page.url()).origin;
+  const make=async(flag_key:string)=>{const response=await page.request.post('/api/admin/modules/feature-flags',{headers:{Origin:origin},data:{flag_key,description:flag_key,enabled:false}});expect(response.status()).toBe(201);return (await response.json()).id as string;};
+  const apps=await make('show_apps');
+  try{expect((await request.get('/apps')).status()).toBe(404);
+    const enabled=await page.request.patch(`/api/admin/modules/feature-flags/${apps}`,{headers:{Origin:origin},data:{enabled:true}});expect(enabled.status()).toBe(200);
+    expect((await request.get('/apps')).status()).toBe(200);
+    const ask=await make('enable_ask_adam');
+    try{expect((await request.post('/api/ask-adam',{data:{question:'Hello'}})).status()).toBe(503);}
+    finally{expect((await page.request.delete(`/api/admin/modules/feature-flags/${ask}`,{headers:{Origin:origin}})).status()).toBe(204);}
+  }finally{expect((await page.request.delete(`/api/admin/modules/feature-flags/${apps}`,{headers:{Origin:origin}})).status()).toBe(204);}
+});
+
+test("managed SEO metadata and HTTP redirects run only in review cutover",async({page,request})=>{
+  await signIn(page);const origin=new URL(page.url()).origin,source=`/old-${slug()}`;
+  const seo=await page.request.post('/api/admin/modules/seo',{headers:{Origin:origin},data:{path:'/about',seo_title:'Review SEO Title',og_title:'Review OG Title',canonical_url:'https://adamwisher.com/about',indexable:false,followable:false}});expect(seo.status()).toBe(201);const seoId=(await seo.json()).id;
+  const redirect=await page.request.post('/api/admin/modules/redirects',{headers:{Origin:origin},data:{source_path:source,destination_path:'/about',status_code:'301',enabled:true}});expect(redirect.status()).toBe(201);const redirectId=(await redirect.json()).id;
+  try{const html=await (await request.get('/about')).text();expect(html).toContain('Review SEO Title');expect(html).toContain('Review OG Title');expect(html).toContain('noindex');const response=await request.get(source,{maxRedirects:0});expect(response.status()).toBe(301);expect(new URL(response.headers()['location']).pathname).toBe('/about');expect((await request.get('/admin/login',{maxRedirects:0})).status()).toBe(200);}
+  finally{await page.request.delete(`/api/admin/modules/redirects/${redirectId}`,{headers:{Origin:origin}});await page.request.delete(`/api/admin/modules/seo/${seoId}`,{headers:{Origin:origin}});}
+});

@@ -1,0 +1,7 @@
+"use client";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+export function SettingsPanel(){const router=useRouter(),[current,setCurrent]=useState(""),[next,setNext]=useState(""),[error,setError]=useState(""),[busy,setBusy]=useState(false);
+ async function submit(e:React.FormEvent){e.preventDefault();setBusy(true);setError("");try{const response=await fetch("/api/admin/password",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({currentPassword:current,newPassword:next})}),data=await response.json();if(!response.ok)throw new Error(data.error);router.replace("/admin/login");router.refresh();}catch(e){setError(e instanceof Error?e.message:"Unable to change password");}finally{setBusy(false);}}
+ return <section><h1>Settings</h1><form className="admin-card admin-editor" onSubmit={submit}><h2>Change password</h2><p>Changing your password ends all active Admin sessions. Sign in again with the new password.</p><label>Current password<input type="password" autoComplete="current-password" required value={current} onChange={e=>setCurrent(e.target.value)} /></label><label>New password<input type="password" autoComplete="new-password" required minLength={12} value={next} onChange={e=>setNext(e.target.value)} /></label><button disabled={busy}>{busy?"Updating…":"Update password"}</button>{error&&<p role="alert">{error}</p>}</form></section>;
+}

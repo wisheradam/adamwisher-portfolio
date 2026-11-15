@@ -12,5 +12,17 @@
 .admin-main input,.admin-main textarea,.admin-main select,.admin-login input{display:block;width:100%;border:1px solid #8392aa;border-radius:8px;background:#fff;color:#202936;padding:10px;margin:6px 0 16px}
 .admin-table{overflow:auto;margin-top:18px}.admin-table table{width:100%;border-collapse:collapse;text-align:left}.admin-table th,.admin-table td{padding:12px;border-bottom:1px solid #dce3ed}.admin-table small{display:block;color:#657185}
 .admin-pages{display:flex;align-items:center;gap:16px;margin:16px 0}.admin-editor{max-width:700px;margin-top:20px}.admin-editor textarea{min-height:100px}
+.admin-editor input[type=checkbox]{width:auto;display:inline-block;margin:8px 12px;min-width:20px;min-height:20px}.admin-main :focus-visible,.admin-nav :focus-visible{outline:3px solid #1455b7;outline-offset:2px}.admin-main button:disabled{opacity:.5;cursor:not-allowed}
 .admin-login{min-height:100vh;display:grid;place-items:center;padding:20px}.admin-login form{width:min(100%,420px)}
 @media(max-width:800px){.admin-shell{display:block}.admin-nav{position:static;max-height:none;flex-direction:row;overflow-x:auto;white-space:nowrap}.admin-brand span{display:none}.admin-main{padding:20px}.admin-stats{grid-template-columns:1fr}}
+/* The public footer is part of the root layout but does not belong inside Admin. */
+body:has(.admin-shell)>.site-footer,body:has(.admin-login)>.site-footer{display:none}
+html.dark .admin-shell{background:#161d29;color:#eef3fa}
+html.dark .admin-nav{background:#202b39;border-color:#405168}
+html.dark .admin-nav a,html.dark .admin-nav button{color:#eef3fa}
+html.dark .admin-nav a:hover,html.dark .admin-nav a:focus-visible{background:#364b69}
+html.dark .admin-card{background:#243244;border-color:#52647a;box-shadow:0 4px 20px #0003}
+html.dark .admin-main input,html.dark .admin-main textarea,html.dark .admin-main select{background:#182331;color:#f2f6fc;border-color:#8295ad}
+html.dark .admin-main button{background:#283b51;color:#f2f6fc;border-color:#8295ad}
+html.dark .admin-table th,html.dark .admin-table td{border-color:#52647a}
+html.dark .admin-table small{color:#c4d1e2}

@@ -40,6 +40,12 @@ async function hasValidSession(request: NextRequest) {
 }
 
 export async function middleware(request: NextRequest) {
+  if (!request.nextUrl.pathname.startsWith("/projects")) {
+    if(process.env.PUBLIC_CONTENT_SOURCE==="database"&&process.env.PUBLIC_REDIRECTS_ENABLED==="1"){
+      try {const url=new URL("/api/public/redirect",request.url);url.searchParams.set("path",request.nextUrl.pathname);const result=await fetch(url,{cache:"no-store"});if(result.ok&&result.status===200){const rule=await result.json();if((rule.status===301||rule.status===302)&&typeof rule.destination==="string"&&/^\/(?!\/)[a-zA-Z0-9/_-]*\/?$/.test(rule.destination)&&!/^\/(admin|api|projects|_next)(\/|$)/.test(rule.destination))return NextResponse.redirect(new URL(rule.destination,request.url),rule.status);}}catch{return NextResponse.next();}
+    }
+    return NextResponse.next();
+  }
   const isLogin = request.nextUrl.pathname === "/projects/login";
   const authenticated = await hasValidSession(request);
 
@@ -68,5 +74,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/projects/:path*"],
+  matcher: ["/projects/:path*", "/((?!api|admin|_next|.*\\.).*)"],
 };

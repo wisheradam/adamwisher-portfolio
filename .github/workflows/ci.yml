@@ -28,8 +28,16 @@ jobs:
         run: npm run typecheck
       - name: Build
         run: npm run build
+      - name: Publication snapshot migration regression
+        run: node scripts/test-admin-publication.mjs
+      - name: Publication runtime isolation and rollback
+        run: node scripts/test-publication-runtime.mjs
       - name: Admin data integration
         run: npm run test:admin-data
+      - name: Knowledge import and reconciliation
+        run: npm run test:admin-knowledge
+      - name: Admin security integration
+        run: npm run test:admin-security
       - name: Install pinned Playwright Chromium and OS dependencies
         run: npx playwright install --with-deps chromium
       - name: Configure isolated browser test database
@@ -43,12 +51,25 @@ jobs:
           const hash = `scrypt:${salt}:${scryptSync(password,salt,64).toString('hex')}`;
           for (const value of [password, secret, hash]) console.log(`::add-mask::${value}`);
           fs.appendFileSync(process.env.GITHUB_ENV,
-            `ADMIN_DATABASE_DRIVER=pglite\nADMIN_DB_PATH=${process.env.RUNNER_TEMP}/admin-e2e-pg\nADMIN_TEST_PASSWORD=${password}\nADMIN_PASSWORD_HASH=${hash}\nADMIN_SESSION_SECRET=${secret}\n`);
+            `ADMIN_DATABASE_DRIVER=pglite\nPUBLIC_CONTENT_SOURCE=database\nPUBLIC_REDIRECTS_ENABLED=1\nADMIN_DB_PATH=${process.env.RUNNER_TEMP}/admin-e2e-pg\nADMIN_TEST_PASSWORD=${password}\nADMIN_TEST_EMAIL=admin@example.test\nADMIN_BOOTSTRAP_EMAIL=admin@example.test\nADMIN_PASSWORD_HASH=${hash}\nADMIN_SESSION_SECRET=${secret}\n`);
           NODE
       - name: Migrate isolated browser database
         run: npm run admin:migrate
+      - name: Bootstrap isolated Admin account
+        run: npm run admin:bootstrap
+      - name: Import isolated public knowledge and enable matched review cutover
+        run: |
+          node scripts/admin-import-knowledge.mjs > "$RUNNER_TEMP/knowledge-report.json"
+          node -e 'const fs=require("fs");const r=JSON.parse(fs.readFileSync(process.env.RUNNER_TEMP+"/knowledge-report.json"));if(!r.cutoverReady)process.exit(1);fs.appendFileSync(process.env.GITHUB_ENV,"PUBLIC_KNOWLEDGE_CUTOVER_SHA="+r.fingerprint+"\n")'
       - name: Browser regressions
         run: npm run test:e2e
+      - name: Upload Admin review screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: admin-review-screenshots
+          path: test-results/**/admin-*.png
+          if-no-files-found: ignore
       - name: Upload browser evidence on failure
         if: failure()
         uses: actions/upload-artifact@v4

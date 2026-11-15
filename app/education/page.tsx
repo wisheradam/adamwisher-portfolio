@@ -1,19 +1,20 @@
 import { CourseRow } from "@/components/education/course-row";
 import { SiteHeader } from "@/components/site-header";
 import type { Metadata } from "next";
+import { publicSeo } from "@/lib/admin/public-seo";
 import {
-  education,
   yandexProgram,
   economicsProgram,
 } from "@/data/knowledge/education";
-import { certifications } from "@/data/knowledge/certifications";
+import { publicKnowledge } from "@/lib/admin/public-knowledge";
 import type { KnowledgeRecord } from "@/data/knowledge/types";
 
-export const metadata: Metadata = {
+const defaultMetadata: Metadata = {
   title: "Education & Training — Adam Wisher",
   description:
     "Academic education, professional retraining, completed courses, and practical training across product management, AI, technology, and leadership.",
 };
+export async function generateMetadata():Promise<Metadata>{return publicSeo("/education",defaultMetadata);}
 
 function date(value?: string) {
   if (!value) return "";
@@ -56,11 +57,11 @@ const topics = [
   "Leadership & Communication",
 ];
 
-export default function EducationPage() {
-  const studies = education.filter((record) => record.public);
-  const courses = certifications
-    .filter((record) => record.public)
-    .sort((a, b) => (b.period?.to ?? "").localeCompare(a.period?.to ?? ""));
+export const dynamic="force-dynamic";
+export const runtime="nodejs";
+export default async function EducationPage() {
+  const studies = await publicKnowledge("education");
+  const courses = await publicKnowledge("certifications");
 
   return (
     <main className="page-shell route-page">
