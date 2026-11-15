@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { NOINDEX } from "@/lib/seo/site";
 import Link from "next/link";
 import { ArrowLeft, ArrowUpRight, Inbox, ShieldCheck } from "lucide-react";
 
 export const metadata: Metadata = {
+  ...NOINDEX,
   title: "Mail — Adam Wisher",
   description: "Secure sign-in to the Mail@adamwisher.com inbox.",
 };

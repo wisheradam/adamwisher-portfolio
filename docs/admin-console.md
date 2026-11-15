@@ -168,3 +168,14 @@ The role browser test verifies Editor Draft saves, denied publish/unpublish
 requests, Read Only controls/API denial, and session revocation while editing.
 The certification lifecycle also opens a static-cutover server while the managed
 v2 Draft exists, confirming static content remains authoritative.
+
+### Stage 5.2 Checkpoint 3 — SEO runtime
+
+The public route eligibility resolver now supplies canonical/social metadata,
+robots and sitemap discovery for source-controlled pages and eligible managed
+Apps, Releases, History and legacy Projects. Published snapshots remain the source
+for all six-module content; Draft edits do not change public metadata or images.
+The existing SEO form now starts with index/follow controls matching their saved
+defaults. See [SEO policy, cache behavior and acceptance](seo.md) for the actual
+route matrix, generated PNG implementation, cutover rules and test commands.
+No production migration, data change or Auto Build change is part of this work.

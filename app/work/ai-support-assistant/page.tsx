@@ -1,11 +1,7 @@
+import { metadataForPath } from "@/lib/seo/public-pages";
 import { SiteHeader } from "@/components/site-header";
-import type { Metadata } from "next";
 import Link from "next/link";
 
-export const metadata: Metadata = {
-  title: "Project №5 · AI Assistant for Technical & VIP Support — Adam Wisher",
-  description: "A grounded AI assistant connecting verified company knowledge, CRM product data, CPQ compatibility logic, and expert validation.",
-};
 
 const knowledgeSources = [
   ["Knowledge base", "Governed technical and service knowledge created across the company."],
@@ -177,3 +173,7 @@ export default function AiSupportAssistantPage() {
     </main>
   );
 }
+
+export async function generateMetadata(){return metadataForPath("/work/ai-support-assistant");}
+
+export const dynamic="force-dynamic";

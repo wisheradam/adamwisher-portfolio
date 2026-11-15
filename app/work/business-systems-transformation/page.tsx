@@ -1,12 +1,7 @@
+import { metadataForPath } from "@/lib/seo/public-pages";
 import { SiteHeader } from "@/components/site-header";
-import type { Metadata } from "next";
 import Link from "next/link";
 
-export const metadata: Metadata = {
-  title: "Project №4 · Business Systems Transformation — Adam Wisher",
-  description:
-    "A strategic evaluation and transformation roadmap spanning Salesforce, NetSuite, Slack, CPQ, and factory and vendor integrations.",
-};
 
 const platforms = [
   ["CRM", "Zoho CRM → Salesforce", "Customer, sales, service, and product workflows consolidated around a scalable commercial platform."],
@@ -160,3 +155,7 @@ export default function BusinessSystemsTransformationPage() {
     </main>
   );
 }
+
+export async function generateMetadata(){return metadataForPath("/work/business-systems-transformation");}
+
+export const dynamic="force-dynamic";

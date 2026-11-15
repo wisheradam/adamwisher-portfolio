@@ -1,8 +1,7 @@
+import { metadataForPath } from "@/lib/seo/public-pages";
 import { SiteHeader } from "@/components/site-header";
-import type { Metadata } from "next";
 import { ContactPanel } from "@/components/contact/contact-panel";
 
-export const metadata: Metadata = { title: "Contact — Adam Wisher", description: "Get in touch with Adam Wisher about product management, AI, digital products, and professional opportunities." };
 
 export default function ContactPage() {
   return (
@@ -17,3 +16,7 @@ export default function ContactPage() {
     </main>
   );
 }
+
+export async function generateMetadata(){return metadataForPath("/contact");}
+
+export const dynamic="force-dynamic";

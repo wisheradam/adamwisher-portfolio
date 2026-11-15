@@ -18,8 +18,9 @@ const plexMono = IBM_Plex_Mono({
   display: "swap",
 });
 
-// TODO: replace with real copy, social image, and canonical domain before launch.
+// Child public routes supply their own canonical and social metadata.
 export const metadata: Metadata = {
+  metadataBase: new URL("https://adamwisher.com"),
   title: "Adam Wisher — Product Manager",
   description:
     "Adam Wisher is a Product Manager working across product strategy, AI, and connected systems.",

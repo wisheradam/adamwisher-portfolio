@@ -1,7 +1,6 @@
+import { metadataForPath } from "@/lib/seo/public-pages";
 import { CourseRow } from "@/components/education/course-row";
 import { SiteHeader } from "@/components/site-header";
-import type { Metadata } from "next";
-import { publicSeo } from "@/lib/admin/public-seo";
 import {
   yandexProgram,
   economicsProgram,
@@ -9,12 +8,6 @@ import {
 import { publicKnowledge } from "@/lib/admin/public-knowledge";
 import type { KnowledgeRecord } from "@/data/knowledge/types";
 
-const defaultMetadata: Metadata = {
-  title: "Education & Training — Adam Wisher",
-  description:
-    "Academic education, professional retraining, completed courses, and practical training across product management, AI, technology, and leadership.",
-};
-export async function generateMetadata():Promise<Metadata>{return publicSeo("/education",defaultMetadata);}
 
 function date(value?: string) {
   if (!value) return "";
@@ -290,3 +283,5 @@ export default async function EducationPage() {
     </main>
   );
 }
+
+export async function generateMetadata(){return metadataForPath("/education");}

@@ -1,8 +1,9 @@
+import { metadataForPath } from "@/lib/seo/public-pages";
 import { AskAdam } from "@/components/home/ask-adam";
 import { Hero } from "@/components/home/hero";
 import { SelectedWork } from "@/components/home/selected-work";
 
-export const revalidate = 300;
+export const dynamic = "force-dynamic";
 
 export default function HomePage() {
   return (
@@ -13,3 +14,5 @@ export default function HomePage() {
     </main>
   );
 }
+
+export async function generateMetadata(){return metadataForPath("/");}

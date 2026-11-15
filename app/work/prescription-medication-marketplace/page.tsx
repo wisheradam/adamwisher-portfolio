@@ -1,12 +1,7 @@
+import { metadataForPath } from "@/lib/seo/public-pages";
 import { SiteHeader } from "@/components/site-header";
-import type { Metadata } from "next";
 import Link from "next/link";
 
-export const metadata: Metadata = {
-  title: "Project №6 · Prescription Medication Marketplace — Adam Wisher",
-  description:
-    "An anonymized healthcare product case study covering research, prescription verification, delivery, MVP strategy, analytics, experimentation, risk, and scaling.",
-};
 
 const researchSignals = [
   ["55%", "Forgot to buy medication on time"],
@@ -482,3 +477,7 @@ export default function PrescriptionMedicationMarketplacePage() {
     </main>
   );
 }
+
+export async function generateMetadata(){return metadataForPath("/work/prescription-medication-marketplace");}
+
+export const dynamic="force-dynamic";
