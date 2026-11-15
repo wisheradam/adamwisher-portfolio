@@ -128,7 +128,7 @@ test("Apps Draft, Preview, Publish and Unpublish are server enforced",async({pag
   expect((await request.get(`/apps/${appSlug}`)).status()).toBe(404);
   await page.getByLabel("Search").fill(appSlug);const row=page.locator("tbody tr").filter({hasText:appSlug});await expect(row).toHaveCount(1);await row.getByRole("link",{name:"Preview"}).click();await expect(page.getByRole("heading",{name:"Stage Five App"})).toBeVisible();
   await page.goBack();await page.getByLabel("Search").fill(appSlug);const matchingRow=page.locator("tbody tr").filter({hasText:appSlug});await expect(matchingRow).toHaveCount(1);await matchingRow.getByRole("button",{name:"Edit"}).click();
-  page.once("dialog",dialog=>dialog.accept());await form.getByLabel("Status").selectOption("PUBLISHED");await form.getByRole("button",{name:"Publish"}).click();
+  await form.getByRole("button",{name:"Cancel",exact:true}).click();await matchingRow.getByRole("button",{name:"Publish",exact:true}).click();await expect(matchingRow).toContainText("Published");
   expect((await request.get(`/apps/${appSlug}`)).status()).toBe(200);
   await page.getByRole("button",{name:"Unpublish",exact:true}).click();await expect(page.getByRole("cell",{name:"Unpublished",exact:true})).toBeVisible();
   expect((await request.get(`/apps/${appSlug}`)).status()).toBe(404);

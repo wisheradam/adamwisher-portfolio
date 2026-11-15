@@ -55,6 +55,7 @@ export async function write(kind: Kind, data: Record<string,string|number|null>,
     const entityId = id ?? randomUUID();
     const values: Record<string, string|number|boolean|null> = { ...(before ?? {}), ...data, id: entityId, created_at: before?.created_at ?? now, updated_at: now, updated_by: actor };
     if (!values.slug || !values.title || (kind === "products" && !values.type)) throw new Error("Slug, title and type are required");
+    validate(kind,values);
     const columns = Object.keys(values).filter(k => ["id","created_at","updated_at","updated_by","published_at",...fields[kind]].includes(k));
     if(data.status==="PUBLISHED" && !before?.published_at) {values.published_at=now;if(!columns.includes("published_at"))columns.push("published_at");}
     const placeholders=columns.map((_,i)=>`$${i+1}`);

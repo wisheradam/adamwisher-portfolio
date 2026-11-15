@@ -4,9 +4,9 @@ import {readFileSync,readdirSync} from 'node:fs';
 import {createRequire} from 'node:module';
 import vm from 'node:vm';
 import ts from 'typescript';
-const require=createRequire(import.meta.url),db=new PGlite(),cache={};let fail=false;let assertions=0;
-const query=async(sql,values=[])=>{if(fail&&sql.startsWith('INSERT INTO audit_events'))throw new Error('Injected audit storage failure');return (await db.query(sql,values)).rows;};
-const store={query,transaction:fn=>db.transaction(tx=>fn(async(sql,values=[])=>{if(fail&&sql.startsWith('INSERT INTO audit_events'))throw new Error('Injected audit storage failure');return (await tx.query(sql,values)).rows;}))};
+const require=createRequire(import.meta.url),db=new PGlite(),cache={};let assertions=0;
+const query=async(sql,values=[])=>{return (await db.query(sql,values)).rows;};
+const store={query,transaction:fn=>db.transaction(tx=>fn(async(sql,values=[])=>{return (await tx.query(sql,values)).rows;}))};
 function load(name){if(cache[name])return cache[name];const exports={};cache[name]=exports;const code=ts.transpileModule(readFileSync(`lib/admin/${name}.ts`,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;vm.runInNewContext(code,{exports,process,require:id=>id==='server-only'?{}:id==='./db'?{store}:id.startsWith('./')?load(id.slice(2)):require(id)},{filename:name});return exports;}
 const equal=(a,b)=>{assert.equal(a,b);assertions++;};
 try{
@@ -22,10 +22,20 @@ try{
   const pub=await save({status:'PUBLISHED'},row.id);equal((await publishedRows(table))[0][field],'v1');
   await save({[field]:'v2',status:'DRAFT'},row.id);equal((await publishedRows(table))[0][field],'v1');
   equal((await publicationState(table,await query(`SELECT * FROM ${table} WHERE id=$1`,[row.id])))[0].publication_state,'Published with unpublished changes');
-  fail=true;await assert.rejects(save({status:'PUBLISHED'},row.id),/Injected/);assertions++;fail=false;
+  for(const target of ['publication_snapshots','audit_events']){
+   const column=target==='audit_events'?'actor_id':'published_by';
+   await db.exec(`ALTER TABLE ${target} ADD CONSTRAINT reject_publication_test CHECK(${column}<>'actor') NOT VALID`);
+   await assert.rejects(save({status:'PUBLISHED'},row.id),e=>e.code==='23514');assertions++;
+   await db.exec(`ALTER TABLE ${target} DROP CONSTRAINT reject_publication_test`);
+   equal((await publishedRows(table))[0][field],'v1');equal((await query(`SELECT status FROM ${table} WHERE id=$1`,[row.id]))[0].status,'DRAFT');
+  }
   equal((await publishedRows(table))[0][field],'v1');equal((await query(`SELECT status FROM ${table} WHERE id=$1`,[row.id]))[0].status,'DRAFT');
   await save({status:'PUBLISHED'},row.id);equal((await publishedRows(table))[0][field],'v2');
   await save({status:'PUBLISHED'},row.id);equal((await publishedRows(table)).length,1);
+  await db.exec("ALTER TABLE audit_events ADD CONSTRAINT reject_unpublish_test CHECK(actor_id<>'actor') NOT VALID");
+  await assert.rejects(save({status:'ARCHIVED'},row.id),e=>e.code==='23514');assertions++;
+  await db.exec('ALTER TABLE audit_events DROP CONSTRAINT reject_unpublish_test');
+  equal((await publishedRows(table))[0][field],'v2');
   await save({status:'ARCHIVED'},row.id);equal((await publishedRows(table)).length,0);
   await save({status:'ARCHIVED'},row.id);equal((await publishedRows(table)).length,0);equal((await query(`SELECT ${field} FROM ${table} WHERE id=$1`,[row.id]))[0][field],'v2');
   await save({status:'PUBLISHED'},row.id);equal((await publishedRows(table))[0][field],'v2');

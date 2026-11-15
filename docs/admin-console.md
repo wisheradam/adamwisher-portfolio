@@ -160,3 +160,11 @@ removes fixtures. Certification lifecycle screenshots cover 390/320px light/dark
 Browser acceptance and exact-commit CI must be verified before either checkpoint
 is marked PASS. Local Chromium launch is restricted in the execution container;
 GitHub CI provides the real Chromium run. Live Aurora validation remains Stage 5.3.
+
+Runtime fault coverage now uses real PostgreSQL CHECK failures in snapshot and
+audit writes, including a failed Unpublish after snapshot deletion. All six
+modules must retain their prior snapshot and working state after rollback.
+The role browser test verifies Editor Draft saves, denied publish/unpublish
+requests, Read Only controls/API denial, and session revocation while editing.
+The certification lifecycle also opens a static-cutover server while the managed
+v2 Draft exists, confirming static content remains authoritative.

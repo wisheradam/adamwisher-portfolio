@@ -61,6 +61,7 @@ export async function writeModule(module:ModuleName,raw:unknown,actor:string,id?
     }
     if(module==="feature-flags")values.enabled??=false;
     if(module==="seo"){values.indexable??=true;values.followable??=true;if(values.canonical_url&&values.canonical_url!==`https://adamwisher.com${values.path}`)throw new InputError("Canonical URL must match the page path");}
+    validateModule(module,values);
     const columns=Object.keys(values).filter(key=>["id","created_at","updated_at","updated_by",...(work.has(module)?["published_at"]:[]),...fieldsFor(module).map(f=>f.name)].includes(key));
     const after=(await query(`INSERT INTO ${table}(${columns.join(",")}) VALUES(${columns.map((_,i)=>`$${i+1}`).join(",")}) ON CONFLICT(id) DO UPDATE SET ${columns.filter(key=>key!=="id").map(key=>`${key}=excluded.${key}`).join(",")} RETURNING *`,columns.map(key=>values[key])))[0];
     const publicationAction=await syncPublication(query,table,after,data.status,actor);
