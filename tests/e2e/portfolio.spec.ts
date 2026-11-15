@@ -59,7 +59,7 @@ for (const width of [1440, 390, 320]) {
     await page.setViewportSize({ width, height: 900 });
     await page.goto("/");
     await page.evaluate(() => document.fonts.ready);
-    await expect(page.locator("#selected-work .project-card")).toHaveCount(3);
+    await expect(page.locator("#selected-work .project-card")).toHaveCount(6);
     expect(
       await page
         .locator("#selected-work")
@@ -69,17 +69,12 @@ for (const width of [1440, 390, 320]) {
         .locator(".ask-adam")
         .evaluate((el) => el.getBoundingClientRect().top),
     );
-    expect(
-      await page
-        .locator(".project-visual img")
-        .evaluateAll((images) =>
-          images.every(
-            (img) =>
-              (img as HTMLImageElement).complete &&
-              (img as HTMLImageElement).naturalWidth > 0,
-          ),
-        ),
-    ).toBe(true);
+    const covers=page.locator("#selected-work .gf-cover-light");
+    await expect(covers).toHaveCount(6);
+    for(const cover of await covers.all()) {
+      await cover.scrollIntoViewIfNeeded();
+      await expect.poll(()=>cover.evaluate(img=>(img as HTMLImageElement).complete&&(img as HTMLImageElement).naturalWidth>0)).toBe(true);
+    }
     await page.getByRole("link", { name: "View selected work" }).click();
     await expect(page).toHaveURL(/#selected-work$/);
     await page.goto("/");

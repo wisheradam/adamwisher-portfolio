@@ -1,0 +1,19 @@
+import {mkdtemp,rm} from 'node:fs/promises';import {tmpdir} from 'node:os';import path from 'node:path';
+import {randomBytes,scryptSync} from 'node:crypto';import {spawn,execFileSync} from 'node:child_process';import {strict as assert} from 'node:assert';
+const dir=await mkdtemp(path.join(tmpdir(),'adam-folder-http-')),password=randomBytes(24).toString('hex'),salt=randomBytes(16).toString('hex'),base='http://127.0.0.1:34829';
+const env={...process.env,ADMIN_DATABASE_DRIVER:'pglite',ADMIN_DB_PATH:path.join(dir,'db'),PUBLIC_CONTENT_SOURCE:'database',PUBLIC_REDIRECTS_ENABLED:'0',ADMIN_BOOTSTRAP_EMAIL:'folders@example.test',ADMIN_PASSWORD_HASH:`scrypt:${salt}:${scryptSync(password,salt,64).toString('hex')}`};let server,checks=0;const eq=(a,b)=>{assert.equal(a,b);checks++;};
+async function start(){server=spawn(process.execPath,['node_modules/next/dist/bin/next','start','-H','127.0.0.1','-p','34829'],{env,stdio:'ignore'});for(let n=0;n<100;n++){try{await fetch(base+'/robots.txt');return;}catch{await new Promise(r=>setTimeout(r,100));}}throw new Error('Server did not start');}
+async function stop(){if(server?.exitCode===null){server.kill();await new Promise(r=>server.once('exit',r));}}
+try{
+ for(const name of ['admin-migrate','admin-bootstrap'])execFileSync(process.execPath,[`scripts/${name}.mjs`],{env,stdio:'ignore'});await start();
+ const request=(url,options={})=>fetch(base+url,{...options,headers:{'user-agent':'Twitterbot',...options.headers}});
+ const login=await request('/api/admin/login',{method:'POST',headers:{origin:base,'content-type':'application/json'},body:JSON.stringify({email:'folders@example.test',password})});eq(login.status,200);const cookie=login.headers.get('set-cookie').split(';')[0],headers={cookie,origin:base,'content-type':'application/json'};
+ const create=async(slug,status,visibility)=>{const r=await request('/api/admin/records/projects',{method:'POST',headers,body:JSON.stringify({slug,title:slug,summary:'Public synthetic summary',body:'DO_NOT_SERIALIZE_BODY /api/admin/media/secret /projects/secret',status,visibility})});eq(r.status,201);return r.json();};
+ const pub=await create('folder-public','PUBLISHED','PUBLIC');await create('folder-draft','DRAFT','PUBLIC');await create('folder-private','PUBLISHED','PRIVATE');await create('folder-archived','ARCHIVED','PUBLIC');const deleted=await create('folder-deleted','PUBLISHED','PUBLIC');eq((await request('/api/admin/records/projects/'+deleted.id,{method:'DELETE',headers})).status,204);
+ const response=await request('/');eq(response.status,200);let html=await response.text();eq((html.match(/class="gf-root"/g)??[]).length,7);eq(html.includes('folder-public'),true);eq(html.includes('/og?path=%2Fwork%2Ffolder-public'),true);
+ for(const marker of ['folder-draft','folder-private','folder-archived','folder-deleted','DO_NOT_SERIALIZE_BODY','/api/admin/media/secret','/projects/secret','Untitled','Add a file'])eq(html.includes(marker),false);
+ eq((await request('/project-visuals/ssot-light.svg')).status,200);eq((await request('/og?path=%2Fwork%2Ffolder-public')).status,200);eq((await request('/projects/product-checker',{redirect:'manual'})).status,307);
+ eq((await request('/api/admin/records/projects/'+pub.id,{method:'PATCH',headers,body:JSON.stringify({status:'DRAFT'})})).status,200);html=await (await request('/')).text();eq(html.includes('folder-public'),false);eq((html.match(/class="gf-root"/g)??[]).length,6);
+ await stop();env.PUBLIC_CONTENT_SOURCE='static';env.ADMIN_DB_PATH='/nonexistent/folder-static-do-not-open';await start();const fallback=await request('/');eq(fallback.status,200);eq(((await fallback.text()).match(/class="gf-root"/g)??[]).length,6);
+ console.log(`Project folder HTTP: ${checks} assertions passed (SSR public data, real assets, no private fields/materials, unpublish, protected routes and database-free fallback).`);
+}finally{await stop();await rm(dir,{recursive:true,force:true});}
