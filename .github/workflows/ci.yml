@@ -34,6 +34,10 @@ jobs:
         run: node scripts/test-admin-publication.mjs
       - name: Publication runtime isolation and rollback
         run: node scripts/test-publication-runtime.mjs
+      - name: SEO eligibility policy
+        run: node scripts/test-seo.mjs
+      - name: SEO HTTP and image integration
+        run: node scripts/test-seo-http.mjs
       - name: Admin data integration
         run: npm run test:admin-data
       - name: Knowledge import and reconciliation
