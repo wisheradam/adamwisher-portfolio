@@ -1,6 +1,6 @@
 import "server-only";
 import { createHash } from "node:crypto";
-import { store } from "./db";
+import { publishedRows } from "./publication";
 import { experience } from "@/data/knowledge/experience";
 import { education } from "@/data/knowledge/education";
 import { certifications } from "@/data/knowledge/certifications";
@@ -11,8 +11,8 @@ export function knowledgeFingerprint(){return createHash("sha256").update(Object
 export function knowledgeCutover(){const sha=process.env.PUBLIC_KNOWLEDGE_CUTOVER_SHA;return Boolean(sha&&sha===knowledgeFingerprint());}
 export async function publicKnowledge(kind:keyof typeof sources):Promise<KnowledgeRecord[]>{
  if(!knowledgeCutover())return sources[kind].filter(r=>r.public);
- const table={experience:"experience",education:"education_records",certifications:"certifications"}[kind];
- const rows=await store.query(`SELECT * FROM ${table} WHERE status='PUBLISHED' AND visibility='PUBLIC' AND deleted_at IS NULL ORDER BY sort_order ASC, id ASC`);
+ const table={experience:"experience",education:"education_records",certifications:"certifications"} as const;
+ const rows=(await publishedRows(table[kind])).sort((a,b)=>Number(a.sort_order)-Number(b.sort_order)||String(a.id).localeCompare(String(b.id)));
  const originals=new Map(sources[kind].map(r=>[stableId(r.id),r]));
  return rows.map(row=>{
   const original=originals.get(String(row.id));const name=kind==="experience"?row.company:kind==="education"?row.institution:row.issuer;

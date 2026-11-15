@@ -1,6 +1,7 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { store } from "./db";
+import { publicationState,syncPublication } from "./publication";
 import { fieldsFor,isModule,modules,type ModuleName } from "./module-config";
 import type { Query,Row } from "./db";
 export { isModule,modules };
@@ -42,12 +43,13 @@ async function ensureNoLoop(query:Query,source:string,destination:string,id?:str
   let current=destination;const seen=new Set<string>([source]);
   while(edges.has(current)){if(seen.has(current))throw new InputError("Redirect loop detected");seen.add(current);current=edges.get(current)!;}
 }
-export async function listModule(module:ModuleName,search:string,offset:number){const {table,primary}=modules[module];return store.query(`SELECT * FROM ${table} WHERE ${module==="feature-flags"?"TRUE":"deleted_at IS NULL"} AND ${primary} ILIKE $1 ORDER BY updated_at DESC LIMIT 25 OFFSET $2`,[`%${search}%`,offset]);}
+export async function listModule(module:ModuleName,search:string,offset:number){const {table,primary}=modules[module];return publicationState(table,await store.query(`SELECT * FROM ${table} WHERE ${module==="feature-flags"?"TRUE":"deleted_at IS NULL"} AND ${primary} ILIKE $1 ORDER BY updated_at DESC LIMIT 25 OFFSET $2`,[`%${search}%`,offset]));}
 export async function getModule(module:ModuleName,id:string){return (await store.query(`SELECT * FROM ${modules[module].table} WHERE id=$1 ${module==="feature-flags"?"":"AND deleted_at IS NULL"}`,[id]))[0];}
 export async function writeModule(module:ModuleName,raw:unknown,actor:string,id?:string){
   const data=validateModule(module,raw),{table}=modules[module],now=new Date().toISOString();
   return store.transaction(async query=>{
     const before=id?(await query(`SELECT * FROM ${table} WHERE id=$1 FOR UPDATE`,[id]))[0]:undefined;
+    if(before&&(raw as Record<string,unknown>).updated_at!==undefined&&(raw as Record<string,unknown>).updated_at!==before.updated_at)throw new InputError("Record changed. Reload before saving.",409);
     if(id&&!before)throw new InputError("Not found",404);
     const values:Row={...before,...data,id:id??randomUUID(),created_at:before?.created_at??now,updated_at:now,updated_by:actor};
     for(const field of fieldsFor(module))if(field.required&&!values[field.name])throw new InputError(`${field.label} is required`);
@@ -61,12 +63,14 @@ export async function writeModule(module:ModuleName,raw:unknown,actor:string,id?
     if(module==="seo"){values.indexable??=true;values.followable??=true;if(values.canonical_url&&values.canonical_url!==`https://adamwisher.com${values.path}`)throw new InputError("Canonical URL must match the page path");}
     const columns=Object.keys(values).filter(key=>["id","created_at","updated_at","updated_by",...(work.has(module)?["published_at"]:[]),...fieldsFor(module).map(f=>f.name)].includes(key));
     const after=(await query(`INSERT INTO ${table}(${columns.join(",")}) VALUES(${columns.map((_,i)=>`$${i+1}`).join(",")}) ON CONFLICT(id) DO UPDATE SET ${columns.filter(key=>key!=="id").map(key=>`${key}=excluded.${key}`).join(",")} RETURNING *`,columns.map(key=>values[key])))[0];
-    await query("INSERT INTO audit_events(id,actor_id,action,entity_type,entity_id,before_state,after_state,created_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8)",[randomUUID(),actor,before?"UPDATED":"CREATED",table,String(after.id),JSON.stringify(before??null),JSON.stringify(after),now]);
+    const publicationAction=await syncPublication(query,table,after,data.status,actor);
+    await query("INSERT INTO audit_events(id,actor_id,action,entity_type,entity_id,before_state,after_state,created_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8)",[randomUUID(),actor,publicationAction??(before?"UPDATED":"CREATED"),table,String(after.id),JSON.stringify(before??null),JSON.stringify(after),now]);
     return after;
   });
 }
 export async function deleteModule(module:ModuleName,id:string,actor:string){const table=modules[module].table;return store.transaction(async query=>{
   const before=(await query(`SELECT * FROM ${table} WHERE id=$1 FOR UPDATE`,[id]))[0];if(!before)return false;
+  await query("DELETE FROM publication_snapshots WHERE entity_type=$1 AND entity_id=$2",[table,id]);
   if(module==="feature-flags")await query("DELETE FROM feature_flags WHERE id=$1",[id]);
   else await query(`UPDATE ${table} SET deleted_at=$1,updated_at=$1,updated_by=$2 WHERE id=$3`,[new Date().toISOString(),actor,id]);
   await query("INSERT INTO audit_events(id,actor_id,action,entity_type,entity_id,before_state,after_state,created_at) VALUES($1,$2,'DELETED',$3,$4,$5,NULL,$6)",[randomUUID(),actor,table,id,JSON.stringify(before),new Date().toISOString()]);return true;

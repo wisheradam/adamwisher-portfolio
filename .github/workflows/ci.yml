@@ -30,6 +30,8 @@ jobs:
         run: npm run build
       - name: Publication snapshot migration regression
         run: node scripts/test-admin-publication.mjs
+      - name: Publication runtime isolation and rollback
+        run: node scripts/test-publication-runtime.mjs
       - name: Admin data integration
         run: npm run test:admin-data
       - name: Knowledge import and reconciliation

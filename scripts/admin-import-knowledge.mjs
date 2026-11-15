@@ -24,7 +24,8 @@ try{
   for(const spec of specifications){let created=0,preserved=0;for(const [index,record] of spec.records.entries()){
    if(!record.public)continue;
    const id=uuid(record.id),fields=spec.fields(record),values={id,...fields,sort_order:index,status:'PUBLISHED',visibility:'PUBLIC',published_at:now,created_at:now,updated_at:now,updated_by:actor};
-   const keys=Object.keys(values);const result=await tx.query(`INSERT INTO ${spec.table}(${keys.join(',')}) VALUES(${keys.map((_,i)=>`$${i+1}`).join(',')}) ON CONFLICT(id) DO NOTHING RETURNING id`,Object.values(values));
+   const keys=Object.keys(values);const result=await tx.query(`INSERT INTO ${spec.table}(${keys.join(',')}) VALUES(${keys.map((_,i)=>`$${i+1}`).join(',')}) ON CONFLICT(id) DO NOTHING RETURNING *`,Object.values(values));
+   if(result.rows.length)await tx.query('INSERT INTO publication_snapshots(entity_type,entity_id,payload,published_at,published_by) VALUES($1,$2,$3,$4,$5)',[spec.table,id,JSON.stringify(result.rows[0]),now,actor]);
    result.rows.length?created++:preserved++;
   }report.push({entity:spec.name,source:spec.records.filter(r=>r.public).length,created,preserved});}
  });

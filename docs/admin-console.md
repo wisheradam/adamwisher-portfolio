@@ -99,3 +99,64 @@ Checkpoint 1 browser acceptance uses synthetic API fixtures only in the isolated
 
 ### Publication isolation foundation (not activated)
 Migration 005_publication_snapshots adds a separate payload/revision table keyed by stable entity type and ID for the six supported modules. It copies only existing PUBLISHED, nondeleted rows without mutating working records, references, or audit history. Historical approval cannot be reconstructed: the precise current legacy row is retained, not an invented earlier revision. The backfill checks the migration ledger because this runner replays SQL; subsequent reruns cannot resurrect removed snapshots. `node scripts/test-admin-publication.mjs` validates five legacy/isolation/rerun assertions in isolated PGlite. Runtime writers and public readers are not switched yet; the shared mutable publication defect remains until atomic snapshot promotion/unpublish, UI actions, RBAC and browser lifecycle coverage are integrated. Do not enable production cutover.
+
+### Stage 5.2 publication runtime (review only)
+
+Migration `005_publication_snapshots` is now consumed by all six managed modules.
+Working rows retain their IDs, relationships, provenance and editable data. The
+migration snapshots the current legacy PUBLISHED row; historical approval cannot
+be reconstructed, so no older approved version is invented. Migration reruns do
+not recreate removed snapshots. No production migration is authorized.
+
+`publication.ts` promotes validated working data with a snapshot upsert inside
+its working-row transaction. The same transaction writes the audit event; any
+failure rolls back all three. Explicit `status=PUBLISHED` promotes data;
+`status=ARCHIVED` removes only the public snapshot and retains the working row.
+DRAFT/REVIEW saves preserve an existing snapshot. Republishing promotes the
+current persisted working version when using the row action. Form submission
+never implicitly republishes an already published App or structured record.
+Soft deletion also removes the snapshot atomically. Repeated unpublish is safe;
+repeated publish creates another explicit snapshot revision. Audit actions are
+DRAFT_SAVED, PUBLISHED, PUBLICATION_UPDATED, UNPUBLISHED, REPUBLISHED and
+UNPUBLISH_UNCHANGED. Legacy unpublish history is retained in the audit log.
+
+Admin badges compare persisted content with its public snapshot and show
+Unpublished, Published, or Published with unpublished changes. Row actions use
+persisted data, not unsaved form edits. UI writes include the last updated_at;
+the repository checks it under row lock and rejects stale edits with 409. Legacy
+partial API writes without a token retain their previous compatibility policy.
+SUPER_ADMIN can edit, publish and unpublish; EDITOR can save working changes but
+cannot promote/remove snapshots; READ_ONLY cannot mutate. Server handlers enforce
+permissions regardless of button visibility. Existing Project behavior is outside
+this six-module migration and is preserved.
+
+Experience, Education and Certifications retain fingerprint-gated static fallback.
+Apps, App metadata, changelogs and History consume snapshots. Releases/Timeline
+exclude entries whose referenced App, Release or Project is not public. Snapshot
+media references prevent deletion even after working references change. Public
+routes already use dynamic request rendering: no new cross-request snapshot cache
+or external invalidation service is introduced. The next request after a committed
+write sees its public state; there is no cache-invalidation write that can fail
+separately. An already open document needs navigation/refresh to show the change.
+There are no public JSON content endpoints for these six modules. Admin APIs and
+working previews remain authenticated; metadata uses the published App snapshot.
+
+Newly imported factual records receive their initial snapshot transactionally.
+Import reruns never resnapshot an existing Admin-edited or unpublished row. The
+44 Courses and four Training programs remain unchanged. Synthetic credentials
+exist only in disposable test databases and browser fixtures, with cleanup.
+
+Validation commands: `node scripts/test-admin-publication.mjs` (migration),
+`node scripts/test-publication-runtime.mjs` (six-module isolation/rollback),
+`npm run test:admin-data`, `npm run test:admin-knowledge`,
+`npm run test:admin-security`, `npm run lint`, `npm run typecheck`,
+`npm run build`, and `npm run test:e2e`.
+`node scripts/prepare-publishing-review.mjs` creates an isolated local database
+and a private temporary shell environment for repeatable browser runs; never use
+production credentials or an existing database path. The browser lifecycle suite
+creates and edits through Admin, checks anonymous public HTML and rendered pages,
+refreshes Drafts, publishes v2, unpublishes, republishes, checks the Audit UI and
+removes fixtures. Certification lifecycle screenshots cover 390/320px light/dark.
+Browser acceptance and exact-commit CI must be verified before either checkpoint
+is marked PASS. Local Chromium launch is restricted in the execution container;
+GitHub CI provides the real Chromium run. Live Aurora validation remains Stage 5.3.

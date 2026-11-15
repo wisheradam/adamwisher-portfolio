@@ -1,3 +1,4 @@
+import { publicationState,syncPublication } from "./publication";
 import { randomUUID } from "node:crypto";
 import { store, type Query } from "./db";
 
@@ -39,8 +40,8 @@ export function validate(kind: Kind, raw: unknown): Record<string, string | numb
   return output;
 }
 export async function list(kind: Kind, search: string, offset: number) {
-  const columns = kind === "products" ? "id,slug,title,summary,status,visibility,updated_at,type" : "id,slug,title,summary,status,visibility,updated_at";
-  return store.query(`SELECT ${columns} FROM ${kind} WHERE deleted_at IS NULL AND (title ILIKE $1 OR slug ILIKE $1) ORDER BY updated_at DESC LIMIT 25 OFFSET $2`, [`%${search}%`,offset]);
+  const columns = "*";
+  return publicationState(kind,await store.query(`SELECT ${columns} FROM ${kind} WHERE deleted_at IS NULL AND (title ILIKE $1 OR slug ILIKE $1) ORDER BY updated_at DESC LIMIT 25 OFFSET $2`, [`%${search}%`,offset]));
 }
 export async function get(kind: Kind, id: string) {
   return (await store.query(`SELECT * FROM ${kind} WHERE id=$1 AND deleted_at IS NULL`,[id]))[0];
@@ -49,6 +50,7 @@ export async function write(kind: Kind, data: Record<string,string|number|null>,
   const now = new Date().toISOString();
   return store.transaction(async query => {
     const before = id ? (await query(`SELECT * FROM ${kind} WHERE id=$1 AND deleted_at IS NULL FOR UPDATE`,[id]))[0] : undefined;
+    if(before&&data.updated_at!==undefined&&data.updated_at!==before.updated_at)throw new Error("Record changed. Reload before saving.");
     if (id && !before) throw new Error("Not found");
     const entityId = id ?? randomUUID();
     const values: Record<string, string|number|boolean|null> = { ...(before ?? {}), ...data, id: entityId, created_at: before?.created_at ?? now, updated_at: now, updated_by: actor };
@@ -57,8 +59,9 @@ export async function write(kind: Kind, data: Record<string,string|number|null>,
     if(data.status==="PUBLISHED" && !before?.published_at) {values.published_at=now;if(!columns.includes("published_at"))columns.push("published_at");}
     const placeholders=columns.map((_,i)=>`$${i+1}`);
     const after=(await query(`INSERT INTO ${kind} (${columns.join(",")}) VALUES (${placeholders.join(",")}) ON CONFLICT(id) DO UPDATE SET ${columns.filter(k=>k!=="id").map(k=>`${k}=excluded.${k}`).join(",")} RETURNING *`,columns.map(k=>values[k])))[0];
+    const publicationAction=await syncPublication(query,kind,after,data.status,actor);
     const action=before?.status!==after.status&&after.status==="PUBLISHED"?"PUBLISHED":before?.status==="PUBLISHED"&&after.status!=="PUBLISHED"?"UNPUBLISHED":before?"UPDATED":"CREATED";
-    await audit(query,actor,action,kind,entityId,before??null,after);
+    await audit(query,actor,publicationAction??action,kind,entityId,before??null,after);
     return after;
   });
 }
@@ -71,6 +74,7 @@ export async function remove(kind: Kind, id: string, actor: string) {
     const before=(await query(`SELECT * FROM ${kind} WHERE id=$1 AND deleted_at IS NULL FOR UPDATE`,[id]))[0];if(!before)return false;
     const now=new Date().toISOString();
     await query(`UPDATE ${kind} SET deleted_at=$1, updated_at=$1, updated_by=$2 WHERE id=$3`,[now,actor,id]);
+    await query("DELETE FROM publication_snapshots WHERE entity_type=$1 AND entity_id=$2",[kind,id]);
     await audit(query,actor,"SOFT_DELETED",kind,id,before,null);return true;
   });
 }

@@ -46,7 +46,10 @@ try{
    if(['experience','education','certifications','releases','timeline'].includes(module))assert.equal((await req(`${url}/${row.id}`,{method:'PATCH',headers:editorHeaders,body:JSON.stringify({status:'PUBLISHED',visibility:'PUBLIC'})})).status,403);
    if(['experience','education','certifications','releases','timeline'].includes(module)){
      const published=await req(`${url}/${row.id}`,{method:'PATCH',headers:ownerHeaders,body:JSON.stringify({status:'PUBLISHED',visibility:'PUBLIC'})});assert.equal(published.status,200,await published.clone().text());assert.ok((await published.json()).published_at);
-     const unpublished=await req(`${url}/${row.id}`,{method:'PATCH',headers:ownerHeaders,body:JSON.stringify({status:'DRAFT'})});assert.equal(unpublished.status,200);assert.equal((await unpublished.json()).published_at,null);
+     assert.equal((await req(`${url}/${row.id}`,{method:'PATCH',headers:viewerHeaders,body:JSON.stringify({status:'DRAFT'})})).status,403);
+     assert.equal((await req(`${url}/${row.id}`,{method:'PATCH',headers:editorHeaders,body:JSON.stringify({status:'ARCHIVED'})})).status,403);
+     assert.equal((await req(`${url}/${row.id}`,{method:'PATCH',headers:editorHeaders,body:JSON.stringify({status:'DRAFT'})})).status,200);
+     const unpublished=await req(`${url}/${row.id}`,{method:'PATCH',headers:ownerHeaders,body:JSON.stringify({status:'ARCHIVED'})});assert.equal(unpublished.status,200);assert.equal((await unpublished.json()).published_at,null);
    }
  }
  assert.equal((await req('/api/admin/modules/redirects',{method:'POST',headers:ownerHeaders,body:JSON.stringify({source_path:'/new-test',destination_path:'/old-test',status_code:'301',enabled:true})})).status,400);
@@ -62,11 +65,11 @@ try{
  assert.equal((await req('/api/admin/records/products/'+app.id,{method:'PATCH',headers:ownerHeaders,body:JSON.stringify({status:'PUBLISHED'})})).status,200);
  const release=await req('/api/admin/modules/releases',{method:'POST',headers:ownerHeaders,body:JSON.stringify({title:'Isolated QA Release',version:'1.0',product_id:app.id,status:'PUBLISHED',visibility:'PUBLIC'})});assert.equal(release.status,201);
  assert.equal((await req('/apps/stage-five-app/changelog')).status,200);
- assert.equal((await req('/api/admin/modules/releases/'+(await release.json()).id,{method:'PATCH',headers:ownerHeaders,body:JSON.stringify({status:'DRAFT'})})).status,200);
+ assert.equal((await req('/api/admin/modules/releases/'+(await release.json()).id,{method:'PATCH',headers:ownerHeaders,body:JSON.stringify({status:'ARCHIVED'})})).status,200);
  assert.equal((await req('/apps/stage-five-app/changelog')).status,404);
  const event=await req('/api/admin/modules/timeline',{method:'POST',headers:ownerHeaders,body:JSON.stringify({title:'Isolated QA Milestone',event_type:'MILESTONE',event_date:'2026-01-01',status:'PUBLISHED',visibility:'PUBLIC'})});assert.equal(event.status,201);
  assert.equal((await req('/history')).status,200);
- assert.equal((await req('/api/admin/modules/timeline/'+(await event.json()).id,{method:'PATCH',headers:ownerHeaders,body:JSON.stringify({status:'DRAFT'})})).status,200);
+ assert.equal((await req('/api/admin/modules/timeline/'+(await event.json()).id,{method:'PATCH',headers:ownerHeaders,body:JSON.stringify({status:'ARCHIVED'})})).status,200);
  assert.equal((await req('/history')).status,404);
  const flags=(await req('/api/admin/modules/feature-flags',{headers:{cookie:ownerCookie}}));const history=(await flags.json()).records.find(row=>row.flag_key==='show_history');assert.ok(history);
  const disabledApp=await req('/api/admin/modules/feature-flags',{method:'POST',headers:ownerHeaders,body:JSON.stringify({flag_key:'show_apps',description:'Apps visibility',enabled:false})});assert.equal(disabledApp.status,201);const appFlag=await disabledApp.json();assert.equal((await req('/apps')).status,404);
@@ -90,7 +93,7 @@ try{
  assert.equal((await req('/api/admin/records/products/'+app.id,{method:'PATCH',headers:editorHeaders,body:JSON.stringify({status:'PUBLISHED'})})).status,403);
  assert.equal((await req('/api/admin/records/products/'+app.id,{method:'PATCH',headers:ownerHeaders,body:JSON.stringify({status:'PUBLISHED'})})).status,200);
  assert.equal((await req('/apps/stage-five-app')).status,200);
- assert.equal((await req('/api/admin/records/products/'+app.id,{method:'PATCH',headers:ownerHeaders,body:JSON.stringify({status:'DRAFT'})})).status,200);
+ assert.equal((await req('/api/admin/records/products/'+app.id,{method:'PATCH',headers:ownerHeaders,body:JSON.stringify({status:'ARCHIVED'})})).status,200);
  assert.equal((await req('/apps/stage-five-app')).status,404);
  assert.equal((await req('/api/admin/users/'+ownerCookie,{method:'PATCH',headers:editorHeaders,body:'{}'})).status,403);
  const users=await (await req('/api/admin/users',{headers:{cookie:ownerCookie}})).json();const ownerId=users.users.find(u=>u.role==='SUPER_ADMIN').id;
