@@ -1,15 +1,13 @@
 import { metadataForPath } from "@/lib/seo/public-pages";
-import { PUBLIC_CASE_STUDIES } from "@/data/public-projects";
+import { publicProjects } from "@/lib/public-projects";
 import { SiteHeader } from "@/components/site-header";
-import { ProjectCard } from "@/components/work/project-card";
-import Link from "next/link";
-import { store } from "@/lib/admin/db";
+import { ProjectFolders } from "@/components/work/project-folders";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export default async function WorkPage() {
-  const managed = await store.query("SELECT slug,title,summary,category,role FROM projects WHERE status='PUBLISHED' AND visibility='PUBLIC' AND deleted_at IS NULL ORDER BY sort_order,title LIMIT 100");
+  const projects = await publicProjects();
   return (
     <main className="page-shell route-page">
       <SiteHeader />
@@ -30,10 +28,7 @@ export default async function WorkPage() {
           </p>
         </div>
 
-        <div className="project-grid">
-          {PUBLIC_CASE_STUDIES.map(project=><ProjectCard key={project.href} {...project}/>)}
-        </div>
-        {managed.length>0&&<section aria-label="More projects" className="mt-12"><h2 className="section-title">More projects</h2><div className="project-grid">{managed.map(project=><article key={String(project.slug)} className="project-card project-copy"><p>{project.category}</p><h3>{project.title}</h3><p>{project.summary}</p><p>{project.role}</p><Link href={`/work/${project.slug}`}>View case study</Link></article>)}</div></section>}
+        <ProjectFolders projects={projects}/>
       </section>
     </main>
   );
