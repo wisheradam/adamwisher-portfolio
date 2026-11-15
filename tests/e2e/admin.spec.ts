@@ -130,7 +130,7 @@ test("Apps Draft, Preview, Publish and Unpublish are server enforced",async({pag
   await page.goBack();await page.getByLabel("Search").fill(appSlug);const matchingRow=page.locator("tbody tr").filter({hasText:appSlug});await expect(matchingRow).toHaveCount(1);await matchingRow.getByRole("button",{name:"Edit"}).click();
   page.once("dialog",dialog=>dialog.accept());await form.getByLabel("Status").selectOption("PUBLISHED");await form.getByRole("button",{name:"Publish"}).click();
   expect((await request.get(`/apps/${appSlug}`)).status()).toBe(200);
-  await page.getByRole("button",{name:"Edit"}).click();await form.getByLabel("Status").selectOption("DRAFT");await form.getByRole("button",{name:"Save draft"}).click();
+  await page.getByRole("button",{name:"Unpublish",exact:true}).click();await expect(page.getByRole("cell",{name:"Unpublished",exact:true})).toBeVisible();
   expect((await request.get(`/apps/${appSlug}`)).status()).toBe(404);
 });
 
@@ -144,14 +144,15 @@ test("structured Experience and Education records remain draft until explicit pu
   await signIn(page);const tag=slug();await page.goto("/admin/experience");
   await page.getByRole("button",{name:"New record"}).click();const form=page.locator("form.admin-editor");
   await form.getByLabel("Company",{exact:true}).fill(`Company ${tag}`);await form.getByLabel("Title",{exact:true}).fill(`Role ${tag}`);
-  await form.getByRole("button",{name:"Save"}).click();await expect(page.getByRole("status")).toContainText("Saved successfully");
+  await form.getByRole("button",{name:"Save draft",exact:true}).click();await expect(page.getByRole("status")).toContainText("Saved successfully");
   await page.getByLabel("Search Experience").fill(tag);await expect(page.locator("tbody tr")).toHaveCount(1);
   await page.getByRole("button",{name:"Edit"}).click();await expect(form.getByLabel("Company",{exact:true})).toHaveValue(`Company ${tag}`);
-  await form.getByLabel("Status").selectOption("REVIEW");await form.getByRole("button",{name:"Save"}).click();
-  await expect(page.getByRole("cell",{name:"REVIEW"})).toBeVisible();
+  await form.getByLabel("Status").selectOption("REVIEW");await form.getByRole("button",{name:"Save draft",exact:true}).click();
+  await expect(page.getByRole("cell",{name:"Unpublished",exact:true})).toBeVisible();
+  const savedReview=await page.request.get("/api/admin/modules/experience?q="+tag);expect((await savedReview.json()).records[0].status).toBe("REVIEW");
   await page.goto("/admin/education");await page.getByRole("button",{name:"New record"}).click();
   await page.getByLabel("Institution",{exact:true}).fill(`School ${tag}`);await page.getByLabel("Program",{exact:true}).fill(`Program ${tag}`);
-  await page.locator("form.admin-editor").getByRole("button",{name:"Save"}).click();await expect(page.getByRole("status")).toContainText("Saved successfully");
+  await page.locator("form.admin-editor").getByRole("button",{name:"Save draft",exact:true}).click();await expect(page.getByRole("status")).toContainText("Saved successfully");
   expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(1280);
 });
 
