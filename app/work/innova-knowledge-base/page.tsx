@@ -1,12 +1,7 @@
+import { metadataForPath } from "@/lib/seo/public-pages";
 import { SiteHeader } from "@/components/site-header";
-import type { Metadata } from "next";
 import Link from "next/link";
 
-export const metadata: Metadata = {
-  title: "Project №3 · INNOVA Knowledge & Training Ecosystem — Adam Wisher",
-  description:
-    "A governed company knowledge ecosystem connecting support, onboarding, partner training, certification, and document standards.",
-};
 
 const missions = [
   ["01", "Support", "A trusted answer layer for Technical Support and VIP Service, organized by product, generation, symptom, and task."],
@@ -124,3 +119,7 @@ export default function InnovaKnowledgeBasePage() {
     </main>
   );
 }
+
+export async function generateMetadata(){return metadataForPath("/work/innova-knowledge-base");}
+
+export const dynamic="force-dynamic";

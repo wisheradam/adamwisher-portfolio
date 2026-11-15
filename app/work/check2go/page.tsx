@@ -1,12 +1,8 @@
+import { metadataForPath } from "@/lib/seo/public-pages";
 import { SiteHeader } from "@/components/site-header";
-import type { Metadata } from "next";
 import Link from "next/link";
 import { Check2GoVisual } from "@/components/work/check2go-visual";
 
-export const metadata: Metadata = {
-  title: "Project №2 · Check2Go — Adam Wisher",
-  description: "A 0→1 TravelTech startup led end to end from idea to alpha for the U.S. market.",
-};
 
 const ownership = [
   ["01", "Shape", "Product concept, market positioning, business model, and product strategy."],
@@ -113,3 +109,7 @@ export default function Check2GoPage() {
     </main>
   );
 }
+
+export async function generateMetadata(){return metadataForPath("/work/check2go");}
+
+export const dynamic="force-dynamic";

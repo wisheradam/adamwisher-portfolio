@@ -1,3 +1,4 @@
+import { metadataForPath } from "@/lib/seo/public-pages";
 import { SiteHeader } from "@/components/site-header";
 import { ProjectCard } from "@/components/work/project-card";
 import Link from "next/link";
@@ -83,3 +84,5 @@ export default async function WorkPage() {
     </main>
   );
 }
+
+export async function generateMetadata(){return metadataForPath("/work");}

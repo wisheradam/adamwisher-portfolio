@@ -1,3 +1,4 @@
+import { metadataForPath } from "@/lib/seo/public-pages";
 import { notFound } from "next/navigation";
 import { SiteHeader } from "@/components/site-header";
 import { store } from "@/lib/admin/db";
@@ -9,3 +10,5 @@ export default async function ManagedProject({params}:{params:Promise<{slug:stri
   if(!project) notFound();
   return <main className="page-shell route-page"><SiteHeader/><article className="reading-surface" style={{marginBlock:48}}><p>{project.category}</p><h1>{project.title}</h1><p>{project.summary}</p><div style={{whiteSpace:"pre-wrap",marginTop:32}}>{project.body}</div><p>{project.role}</p></article></main>;
 }
+
+export async function generateMetadata({params}:{params:Promise<{slug:string}>}){return metadataForPath(`/work/${(await params).slug}`);}

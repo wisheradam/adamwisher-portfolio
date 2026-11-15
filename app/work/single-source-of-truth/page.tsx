@@ -1,12 +1,7 @@
+import { metadataForPath } from "@/lib/seo/public-pages";
 import { SiteHeader } from "@/components/site-header";
-import type { Metadata } from "next";
 import Link from "next/link";
 
-export const metadata: Metadata = {
-  title: "Single Source of Truth — Adam Wisher",
-  description:
-    "A company-wide synchronization initiative connecting product, sales, manufacturing, logistics, and engineering data into one unified ecosystem.",
-};
 
 const connectedSystems = [
   "Salesforce",
@@ -93,3 +88,7 @@ export default function SingleSourceOfTruthPage() {
     </main>
   );
 }
+
+export async function generateMetadata(){return metadataForPath("/work/single-source-of-truth");}
+
+export const dynamic="force-dynamic";

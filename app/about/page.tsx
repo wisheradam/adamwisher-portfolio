@@ -1,14 +1,7 @@
+import { metadataForPath } from "@/lib/seo/public-pages";
 import { SiteHeader } from "@/components/site-header";
-import type { Metadata } from "next";
-import { publicSeo } from "@/lib/admin/public-seo";
 import { knowledgeCutover,publicKnowledge } from "@/lib/admin/public-knowledge";
 
-const defaultMetadata: Metadata = {
-  title: "About — Adam Wisher",
-  description:
-    "Adam Wisher's background in technology, mathematics, business leadership, product management, and digital transformation.",
-};
-export async function generateMetadata():Promise<Metadata>{return publicSeo("/about",defaultMetadata);}
 
 export const dynamic="force-dynamic";
 export const runtime="nodejs";
@@ -135,3 +128,5 @@ export default async function AboutPage() {
     </main>
   );
 }
+
+export async function generateMetadata(){return metadataForPath("/about");}
