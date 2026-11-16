@@ -34,6 +34,10 @@ jobs:
         run: npm ci
       - name: Validate repository engineering skills
         run: node scripts/validate-engineering-skills.mjs
+      - name: Offline iMac recovery preparation guards
+        run: |
+          python3 scripts/test-neon-macos-recovery.py
+          node scripts/test-neon-recovery-sql.mjs
       - name: Neon adapter contract
         run: node scripts/test-neon-adapter.mjs
       - name: Migration tracking and recovery
