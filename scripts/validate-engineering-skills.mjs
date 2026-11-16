@@ -29,7 +29,28 @@ function validate(text,name,seen){
  assert(!text.includes('\t')&&text.endsWith('\n'),`${name}: Markdown formatting`);
  return meta;
 }
-assert.deepEqual(readdirSync('.agents/skills').sort(),[...names].sort());
+const vendorNames=['neon','neon-postgres'];
+function validateInventory(entries){
+ for(const name of names)assert(entries.includes(name),`${name}: required repository skill missing`);
+ for(const name of entries)assert(names.includes(name)||vendorNames.includes(name),`${name}: unrecognized skill directory`);
+}
+function validateVendor(text,name){
+ assert(vendorNames.includes(name));
+ const match=/^---\n([\s\S]*?)\n---\n([\s\S]+)$/.exec(text);
+ assert(match,`${name}: vendor frontmatter/body required`);
+ assert.equal((match[1].match(/^name: .+$/gm)??[]).length,1);
+ assert(match[1].split('\n').includes(`name: ${name}`),`${name}: vendor identity mismatch`);
+ assert(/^description: >-?\n  \S/m.test(match[1]),`${name}: vendor description missing`);
+ assert(match[1].split('\n').includes(`  source: https://github.com/neondatabase/agent-skills/tree/main/skills/${name}`),`${name}: official source missing`);
+ assert(/^# /m.test(match[2]),`${name}: vendor procedures missing`);
+ assert(!/-----BEGIN .*PRIVATE KEY-----|AKIA[A-Z0-9]{16}|ghp_[A-Za-z0-9]{30,}/.test(text),`${name}: credential pattern`);
+}
+const entries=readdirSync('.agents/skills');
+validateInventory(entries);
+for(const name of vendorNames.filter(name=>entries.includes(name))){
+ validateVendor(readFileSync(`.agents/skills/${name}/SKILL.md`,'utf8'),name);
+ console.log(`${name}: optional official vendor identity, source and structure PASS`);
+}
 const seen=new Set();
 for(const name of names){validate(readFileSync(`.agents/skills/${name}/SKILL.md`,'utf8'),name,seen);console.log(`${name}: structure, YAML subset, paths, commands and precedence PASS`);}
 // Negative controls prove malformed metadata and broken references fail closed.
@@ -44,3 +65,15 @@ const brokenSamples=[
 ];
 for(const broken of brokenSamples)assert.throws(()=>validate(broken,'nextjs-engineer',new Set()));
 console.log('6 negative controls PASS. Static validation only; not native discovery or behavioral activation.');
+validateInventory(names);validateInventory([...names,...vendorNames]);
+assert.throws(()=>validateInventory(names.slice(1)));
+assert.throws(()=>validateInventory([...names,'unknown-vendor']));
+const vendor='---\nname: neon\ndescription: >-\n  Official Neon procedures\nmetadata:\n  source: https://github.com/neondatabase/agent-skills/tree/main/skills/neon\n---\n# Neon\n';
+validateVendor(vendor,'neon');
+assert.throws(()=>validateVendor(vendor.replace('name: neon','name: other'),'neon'));
+assert.throws(()=>validateVendor(vendor.replace('https://github.com/neondatabase/','https://example.com/'),'neon'));
+assert.throws(()=>validateVendor(vendor.replace('description: >-','missing: >-'),'neon'));
+assert.throws(()=>validateVendor(vendor.replace('# Neon',''),'neon'));
+assert.throws(()=>validateVendor(vendor+'\nghp_'+'a'.repeat(30),'neon'));
+assert.throws(()=>validateVendor(vendor.replace('name: neon','name: neon\nname: neon'),'neon'));
+console.log('Vendor inventory: both installation states and 8 negative controls PASS; repository validation unchanged.');

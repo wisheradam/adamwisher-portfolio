@@ -1,5 +1,67 @@
 # Neon PostgreSQL Free integration
 
+## Follow-up review — November 16, 2026
+
+Merged released main `ae1113dd084301613233934fdcd225eb1895a5a9` into the
+development branch without rewriting history. Stacked PR #16 remains on its existing
+head; no S3 or production changes are included here.
+
+The workspace's direct transport fails DNS resolution. A single WSS query through
+the configured workspace HTTPS proxy returned PostgreSQL 18.7 with TLS verification
+intact. The subsequent integration run was blocked by workspace network policy for
+the Neon endpoint. This is **not** successful live application acceptance. No network
+policy, proxy allowlist, certificate verification, or runtime transport was changed.
+Do not retry via an alternative route to evade the block. CLI migrations, application
+HTTP authentication/RBAC/sessions, persistence across restarts and cold-start recovery
+still require an approved runner with permitted Neon WSS connectivity.
+
+The skill validator now permits only the optional official `neon` and `neon-postgres`
+directories in addition to the five mandatory repository skills. Repository validation
+and its six negative controls are unchanged. Vendor identity, source and structure are
+checked separately; both installation states and eight additional negative controls
+are exercised. These checks do not attest upstream cryptographic provenance or native
+skill activation. Existing local vendor/MCP setup files remain unmodified and untracked.
+
+### Encrypted synthetic content rehearsal
+
+`node scripts/test-encrypted-content-restore.mjs` is a deliberately limited content
+rehearsal, not a production backup utility. It validates a three-table synthetic fixture,
+encrypts with AES-256-GCM and a random 256-bit key, saves ciphertext separately from the
+private key directory, reads/decrypts the saved bytes, rejects wrong keys and tampering,
+then restores into a new PGlite database through the historical migration engine.
+Eight assertions verify decryption/hash, authentication failures, full row equality for
+experience/publication/audit, and Draft v2 versus public v1. CI uses local synthetic data.
+
+The same rehearsal passed using the existing live Neon SQL API's synthetic content:
+one experience row, one published snapshot and one audit record. Plaintext SHA-256:
+`07bca7cf936e82dd8de33f41accb938efe56ae5334b6bf75788ace2b1ffaddc6`.
+Encrypted-envelope SHA-256:
+`3cf9801d5df97f61ffc38c9ef4ba8e0ec36f00aaa21290ab2111f9b03bc96df1`.
+Evidence and keys are private temporary test artifacts outside Git. This demonstrates
+encrypted content recovery outside Neon only; it excludes users/sessions/credentials,
+does not restore the complete database, and is not a durable production backup.
+Automatic approval review rejected the full-row export including authentication
+tables. No such data was exported. A full encrypted pg_dump/pg_restore rehearsal,
+including constraints, schema, authentication data and live restored-app verification,
+remains blocked and must run through an approved secret-safe backup process.
+
+### Read-only source reconciliation
+
+Verified production branch `br-summer-bird-b915xsws` has one database (`neondb`);
+its non-system application-table inventory is empty. This does not prove all prior
+application data is empty. Account `533267008693`, Amplify app `d1kl8c118pp04s`,
+Stockholm, main: app/branch environment **key names only** show no configured Admin
+database/cutover keys. Auto Build remains enabled. No secret values were inspected.
+
+Source-controlled catalog contains six public projects; knowledge importer regressions
+reconcile 9 experience, 2 education and 48 course/training records with edit preservation.
+Historical local SQLite (`adam-admin/.data/admin.sqlite`) was opened read-only and has
+one project, zero products, four audit events. Its provenance as a production source
+is unverified; it must not overwrite another source. Existing local PGlite stores are
+development/test stores unless provenance is established. Surviving Amplify filesystem
+data, owner-held exports and private media remain inaccessible/unreconciled. No bootstrap,
+import, migration or content cutover is authorized on production by these observations.
+
 ## Status and transport
 
 Repository implementation only. No Neon account/project, production secret, Admin account,

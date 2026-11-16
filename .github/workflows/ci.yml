@@ -38,6 +38,8 @@ jobs:
         run: node scripts/test-neon-adapter.mjs
       - name: Migration tracking and recovery
         run: node scripts/test-migration-engine.mjs
+      - name: Encrypted synthetic content restore
+        run: node scripts/test-encrypted-content-restore.mjs
       - name: Disposable PostgreSQL compatibility and restore
         env:
           TEST_POSTGRES_URL: postgresql://postgres:isolated-ci-only@127.0.0.1:5432/admin_review
