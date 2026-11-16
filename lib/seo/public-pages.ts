@@ -29,11 +29,11 @@ export async function resolvePublicPage(path:string):Promise<PublicPage|null>{
  if(!match||!slugPattern.test(match[2]))return null;
  const [,kind,slug,changelog]=match;
  if(kind==='work'){
-  if(changelog)return null;
+  if(changelog||process.env.PUBLIC_CONTENT_SOURCE!=='database')return null;
   const row=(await store.query("SELECT slug,title,summary,seo_title,seo_description,updated_at FROM projects WHERE slug=$1 AND status='PUBLISHED' AND visibility='PUBLIC' AND deleted_at IS NULL",[slug]))[0];
   return row?projectPage(row):null;
  }
- if(!await publicFlag('show_apps'))return null;
+ if(process.env.PUBLIC_CONTENT_SOURCE!=='database'||!await publicFlag('show_apps'))return null;
  const app=(await publishedRows('products')).find(row=>row.slug===slug);
  if(!app)return null;
  if(!changelog)return appPage(app);
