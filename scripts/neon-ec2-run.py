@@ -11,6 +11,7 @@ def main():
  try:
   a.core.require(sys.platform.startswith('linux') and not os.environ.get('CI'),'Trusted EC2 only')
   plan=json.loads(a.core.private_file(args.plan).read_text());a.protocol.fingerprint(plan)
+  a.core.require(plan.get('ec2_runtime') is True,'Explicit EC2 runtime plan required')
   # Dynamic references are resolved outside this process by official asm-exec.
   # No Secrets Manager values are fetched by this program or printed.
   material=json.loads(os.environ.pop('RECOVERY_CONFIGURATION'))

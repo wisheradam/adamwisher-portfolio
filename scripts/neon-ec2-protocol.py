@@ -44,7 +44,7 @@ def recover(adapter,plan,approval):
   adapter.restore_transactionally(archive)
   require(before==adapter.integrity('target',None))
   adapter.verify_independent_key()
-  return {'status':'MATCH','archive_version_verified':True,'integrity_match':True}
+  return {'status':'MATCH','archive_version_verified':True,'archive_version':version,'integrity_match':True}
  finally:
   try: adapter.abort_incomplete_uploads()
   finally: adapter.clean_private_temporary_storage()

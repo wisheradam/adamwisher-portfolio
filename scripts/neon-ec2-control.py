@@ -8,7 +8,7 @@ def check(ok):
  if not ok:raise RuntimeError('Control gate failed')
 def digest(plan):return hashlib.sha256(json.dumps(plan,sort_keys=True).encode()).hexdigest()
 def main():
- p=argparse.ArgumentParser();p.add_argument('mode',choices=['plan','provision','teardown','verify']);p.add_argument('--plan',required=True);p.add_argument('--approval');a=p.parse_args()
+ p=argparse.ArgumentParser();p.add_argument('mode',choices=['plan','provision-vault','provision','provision-initializer','remove-initializer','teardown','verify']);p.add_argument('--plan',required=True);p.add_argument('--approval');a=p.parse_args()
  try:
   plan=json.loads(Path(a.plan).read_text());check(plan['account']==ACCOUNT and plan['region']==REGION)
   check(plan['runner_stack'].startswith('adam-neon-recovery-') and plan['vault_stack'].startswith('adam-neon-vault-'))
@@ -18,6 +18,20 @@ def main():
   import boto3
   check(boto3.client('sts').get_caller_identity()['Account']==ACCOUNT)
   cfn=boto3.client('cloudformation',region_name=REGION)
+  if a.mode=='provision-vault':
+   cfn.create_stack(StackName=plan['vault_stack'],TemplateBody=json.dumps(m.stacks()['vault']),Tags=[{'Key':'Purpose','Value':'adamwisher-neon-recovery-vault'}])
+   cfn.get_waiter('stack_create_complete').wait(StackName=plan['vault_stack']);print('VAULT_CREATED; no secrets populated');return 0
+  if a.mode in ['provision-initializer','remove-initializer']:
+   name=plan['runner_stack']+'-key-initializer'
+   if a.mode=='provision-initializer':
+    runner=cfn.describe_stacks(StackName=plan['runner_stack'])['Stacks'][0]
+    check({'Key':'Purpose','Value':'adamwisher-neon-recovery'} in runner.get('Tags',[]))
+    role=next(x['OutputValue'] for x in runner['Outputs'] if x['OutputKey']=='RunnerRoleName')
+    cfn.create_stack(StackName=name,TemplateBody=json.dumps(m.stacks()['initializer']),Parameters=[{'ParameterKey':'RunnerRoleName','ParameterValue':role},{'ParameterKey':'KeySecretArn','ParameterValue':plan['parameters']['KeySecretArn']}],Capabilities=['CAPABILITY_IAM'],Tags=[{'Key':'Purpose','Value':'adamwisher-neon-recovery-key-init'}])
+    cfn.get_waiter('stack_create_complete').wait(StackName=name)
+   else:
+    cfn.delete_stack(StackName=name);cfn.get_waiter('stack_delete_complete').wait(StackName=name)
+   print('INITIALIZER_PHASE_COMPLETE; owner must verify key-write permission is denied before C');return 0
   if a.mode=='provision':
    expiry=datetime.datetime.fromisoformat(plan['parameters']['Expiry']).replace(tzinfo=datetime.timezone.utc)
    check(0<(expiry-datetime.datetime.now(datetime.timezone.utc)).total_seconds()<=8*3600)
@@ -27,7 +41,8 @@ def main():
    cfn.create_stack(StackName=plan['runner_stack'],TemplateBody=json.dumps(m.stacks()['runner']),Parameters=[{'ParameterKey':k,'ParameterValue':v} for k,v in plan['parameters'].items()],Capabilities=['CAPABILITY_IAM'],Tags=[{'Key':'Purpose','Value':'adamwisher-neon-recovery'}])
    cfn.get_waiter('stack_create_complete').wait(StackName=plan['runner_stack'])
    print(json.dumps({'provisioned':True,'recovery_execution_approved':False}));return 0
-  iam_receipt=[]
+  receipt_path=Path(a.plan).with_suffix('.teardown-receipt.json')
+  iam_receipt=json.loads(receipt_path.read_text()) if receipt_path.exists() else []
   if a.mode=='teardown':
    check(plan.get('archive_and_key_recovery_proof') is True)
    # Inspect ownership before deletion; never delete by a broad resource prefix.
@@ -35,6 +50,7 @@ def main():
    check({'Key':'Purpose','Value':'adamwisher-neon-recovery'} in stack.get('Tags',[]))
    for page in cfn.get_paginator('list_stack_resources').paginate(StackName=stack['StackId']):
     iam_receipt.extend(r for r in page['StackResourceSummaries'] if r['ResourceType'] in ['AWS::IAM::Role','AWS::IAM::InstanceProfile','AWS::Scheduler::Schedule','AWS::SSM::Document'])
+   receipt_path.write_text(json.dumps(iam_receipt));receipt_path.chmod(0o600)
    cfn.delete_stack(StackName=stack['StackId']);cfn.get_waiter('stack_delete_complete').wait(StackName=stack['StackId'])
   # Verify retained vault and report orphan inventory; any found resource is a failure.
   cfn.describe_stacks(StackName=plan['vault_stack'])

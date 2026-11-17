@@ -43,6 +43,8 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y age
           python3 scripts/test-ec2-recovery.py
+          python3 scripts/test-ec2-stacks.py
+          python3 scripts/test-ec2-control.py
           python3 scripts/test-ec2-protocol.py
           python3 scripts/test-neon-secret-launcher.py
           RECOVERY_TEST_CONTAINER="$(docker ps --filter ancestor=postgres:18 --format '{{.ID}}')" python3 scripts/test-ec2-e2e.py

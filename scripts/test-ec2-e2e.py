@@ -43,17 +43,23 @@ INSERT INTO audit_events(id,actor_id,action,entity_type,entity_id,created_at) VA
     run([str(bin/'psql'),'-XqAtw','-v','ON_ERROR_STOP=1','-d','service=source'],seed.encode())
     run(['age-keygen','-o',str(root/'identity')]);recipient=run(['age-keygen','-y',str(root/'identity')]).decode().strip()
     cfg=dict(source_service='source',target_service='target',recipient=recipient,identity_file=str(root/'identity'),service_file=str(root/'services'),pass_file=str(root/'unused'))
-    plan=dict(region='eu-central-1',bucket='synthetic',object_key='recovery/synthetic',key_secret_arn='synthetic',key_version='key-v1')
+    plan=dict(source_endpoint='localhost',target_endpoint='localhost',source_cidr='127.0.0.1/32',target_cidr='127.0.0.1/32',region='eu-central-1',bucket='synthetic',object_key='recovery/synthetic',key_secret_arn='synthetic',key_version='key-v1')
     aws=AWS();adapter=a.Adapter(aws,plan,cfg,root)
     adapter.verify_independent_key()
+    with self.assertRaises(RuntimeError):run([str(bin/'psql'),'-XqAtw','-v','ON_ERROR_STOP=1','-U','synthetic_nonexistent_role','-d','service=source'],b'SELECT 1;')
     with adapter.source_snapshot() as snapshot:
      before=adapter.integrity('source',snapshot);version=adapter.upload_encrypted(snapshot)
     self.assertTrue(aws.versions[version].startswith(b'age-encryption.org/v1'))
     adapter.verify_retained(version);archive=adapter.fetch_version(version);adapter.authenticate(archive);adapter.restore_transactionally(archive)
     self.assertEqual(before,adapter.integrity('target',None))
     # Independent retained AWS state survives removal of original runtime adapter.
-    adapter.clean_private_temporary_storage();del adapter
-    new=a.Adapter(aws,plan,cfg,root);new.verify_independent_key();archive=new.fetch_version(version);new.authenticate(archive)
+    adapter.clean_private_temporary_storage()
+    retained_key=(root/'identity').read_bytes()
+    (root/'identity').unlink();del adapter
+    independent=root/'independent-custodian';independent.mkdir()
+    (independent/'identity').write_bytes(retained_key);(independent/'identity').chmod(0o600)
+    cfg={**cfg,'identity_file':str(independent/'identity')}
+    new=a.Adapter(aws,plan,cfg,independent);new.verify_independent_key();archive=new.fetch_version(version);new.authenticate(archive)
     Path(archive).write_bytes(Path(archive).read_bytes()[:-12])
     with self.assertRaises(RuntimeError):new.authenticate(archive)
     new.clean_private_temporary_storage();self.assertFalse(Path(archive).exists())

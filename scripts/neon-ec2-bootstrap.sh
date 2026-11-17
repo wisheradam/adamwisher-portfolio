@@ -7,6 +7,7 @@ ulimit -c 0
 . /etc/os-release
 [[ "$ID" == ubuntu && "$VERSION_ID" == 24.04 ]]
 [[ "$(id -u)" == 0 ]]
+sed -i 's|http://|https://|g' /etc/apt/sources.list.d/ubuntu.sources
 apt-get update -qq
 apt-get install -y --no-install-recommends ca-certificates curl gnupg age python3-venv awscli
 install -d -m 755 /usr/share/postgresql-common/pgdg
@@ -17,7 +18,9 @@ printf '%s\n' 'deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.o
 apt-get update -qq
 apt-get install -y --no-install-recommends postgresql-client-18
 python3 -m venv /opt/neon-recovery-venv
-/opt/neon-recovery-venv/bin/pip install 'boto3>=1.35,<2'
+recovery_root="$(cd "$(dirname "$0")/.." && pwd)"
+[[ -f "$recovery_root/infra/recovery/approved-python-requirements.txt" ]]
+/opt/neon-recovery-venv/bin/pip install --require-hashes -r "$recovery_root/infra/recovery/approved-python-requirements.txt"
 # Does not install a database server, fetch secrets or start backup jobs.
 # Official asm-exec must be independently installed/verified before preflight.
 command -v age

@@ -19,6 +19,7 @@ def pipeline(commands,env):
  finally:
   for child in children:
    if child.poll() is None: child.terminate();child.wait()
+   if child.stdout:child.stdout.close()
 
 
 class Adapter:
@@ -71,7 +72,8 @@ class Adapter:
   try:
    p.stdin.write(b'BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY; SELECT pg_export_snapshot();\n');p.stdin.flush();snap=p.stdout.readline().decode().strip();core.require(bool(__import__('re').fullmatch('[a-fA-F0-9-]+',snap)),'Snapshot failed');yield snap
   finally:
-   p.terminate();p.wait()
+   if p.poll() is None:p.terminate()
+   p.wait();p.stdin.close();p.stdout.close()
  def integrity(self,side,snapshot):
   return (core.fingerprint(self.config,side,snapshot),core.schema_digest(self.config,side,snapshot),core.sequence_state(self.config,side))
  def s3(self): return self.aws.client('s3',region_name=self.plan['region'])
@@ -95,11 +97,15 @@ class Adapter:
   finally:
    for p in [age,dump]:
     if p.poll() is None:p.terminate();p.wait()
+    if p.stdout:p.stdout.close()
  def verify_retained(self,version):
   r=self.s3().head_object(Bucket=self.plan['bucket'],Key=self.plan['object_key'],VersionId=version)
   core.require(0<r['ContentLength']<=1024**3 and r.get('ServerSideEncryption')=='AES256','Retained encrypted archive invalid')
  def fetch_version(self,version):
-  fd,name=tempfile.mkstemp(dir=self.root,suffix='.age');os.close(fd);self.private.append(Path(name))
+  archive_root=Path('/var/lib/neon-recovery') if self.plan.get('ec2_runtime') else self.root
+  archive_root.mkdir(mode=0o700,parents=True,exist_ok=True)
+  core.require(not archive_root.is_symlink() and archive_root.stat().st_mode&0o777==0o700,'Private ciphertext storage required')
+  fd,name=tempfile.mkstemp(dir=archive_root,suffix='.age');os.close(fd);self.private.append(Path(name))
   stream=self.s3().get_object(Bucket=self.plan['bucket'],Key=self.plan['object_key'],VersionId=version)['Body']
   try:
    with open(name,'wb') as out: shutil.copyfileobj(stream,out)
