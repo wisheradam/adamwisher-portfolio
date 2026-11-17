@@ -10,6 +10,7 @@ assert.equal(process.env.RECOVERY_APPLICATION_APPROVED,'1');
 assert.equal(url.hostname,process.env.RECOVERY_TARGET_ENDPOINT);
 assert.ok(process.env.RECOVERY_TARGET_BRANCH?.startsWith('br-'));
 assert.ok(!['br-wispy-darkness-b91vydbj','br-summer-bird-b915xsws'].includes(process.env.RECOVERY_TARGET_BRANCH));
+assert.notEqual(url.hostname.replace('-pooler.','.'),'ep-gentle-firefly-b9rgczs1.c-7.eu-central-1.aws.neon.tech');
 assert.notEqual(url.hostname.replace('-pooler.','.'),'ep-morning-dew-b97in9dm.c-7.eu-central-1.aws.neon.tech');
 assert.equal(process.env.RECOVERY_TARGET_ISOLATED,'1');
 const store=createNeonStore(),stamp=new Date().toISOString(),runId=randomUUID(),port=34917,base=`http://127.0.0.1:${port}`;

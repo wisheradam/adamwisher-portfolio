@@ -37,6 +37,8 @@ class Tests(unittest.TestCase):
  def test_production(self):
   c=dict(PLAN,target_branch='br-summer-bird-b915xsws')
   with self.assertRaises(p.Stop):p.fingerprint(c)
+ def test_production_endpoint_mismatch(self):
+  with self.assertRaises(p.Stop):p.fingerprint(dict(PLAN,target_endpoint='ep-gentle-firefly-b9rgczs1.c-7.eu-central-1.aws.neon.tech'))
  def test_dns_change(self):
   with self.assertRaises(p.Stop):p.verify_dns(PLAN,lambda h:('','',['9.9.9.9']))
  def test_teardown_survival(self):

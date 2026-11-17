@@ -14,6 +14,7 @@ def fingerprint(plan):
  require(plan['source_branch']=='br-wispy-darkness-b91vydbj')
  require(plan['target_branch'] not in [plan['source_branch'],'br-summer-bird-b915xsws'])
  require(plan['source_endpoint']!=plan['target_endpoint'])
+ require(plan['target_endpoint'].replace('-pooler.','.')!='ep-gentle-firefly-b9rgczs1.c-7.eu-central-1.aws.neon.tech')
  require(plan['source_endpoint'].startswith('ep-morning-dew-b97in9dm.'))
  for host in [plan['source_endpoint'],plan['target_endpoint']]:
   require(host.endswith('.neon.tech') and '-pooler.' not in host)
