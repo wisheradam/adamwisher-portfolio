@@ -21,4 +21,11 @@ for(const query of ['host=ep-unapproved.neon.tech','port=5433','dbname=unapprove
  rejects(()=>verifyAcceptance({...env,RECOVERY_CONFIGURATION:JSON.stringify(config)},args,read,stat));
 }
 for(const value of [`https://synthetic:synthetic@${plan.target_endpoint}/isolated?sslmode=verify-full`,`postgresql://synthetic:synthetic@${plan.target_endpoint}:5433/isolated?sslmode=verify-full`,`postgresql://synthetic:synthetic@${plan.target_endpoint}/isolated?sslmode=verify-full#unapproved`])rejects(()=>verifyAcceptance({...env,RECOVERY_CONFIGURATION:JSON.stringify({app_database_url:value})},args,read,stat));
+const rolePlan={...plan,target_role:'synthetic'},roleRaw=JSON.stringify(rolePlan),roleHash=createHash('sha256').update(roleRaw).digest('hex');
+const roleReceipt={...receipt,fingerprint:roleHash};
+const roleRead=path=>JSON.stringify(path.endsWith('.recovery.json')?roleReceipt:rolePlan);
+const roleEnv={...env,RECOVERY_APPROVED_PLAN:roleRaw},roleArgs=['--plan','/private/runtime.json','--approval',roleHash];
+assert.equal(verifyAcceptance(roleEnv,roleArgs,roleRead,stat).fingerprint,roleHash);checks++;
+const wrongRoleConfig=JSON.parse(env.RECOVERY_CONFIGURATION);wrongRoleConfig.app_database_url=wrongRoleConfig.app_database_url.replace('synthetic:synthetic@','unapproved:synthetic@');
+rejects(()=>verifyAcceptance({...roleEnv,RECOVERY_CONFIGURATION:JSON.stringify(wrongRoleConfig)},roleArgs,roleRead,stat));
 console.log(`Recovery application approval/target guard: ${checks} assertions passed (synthetic, no database access).`);

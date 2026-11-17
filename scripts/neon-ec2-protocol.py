@@ -20,10 +20,27 @@ def fingerprint(plan):
   require(host.endswith('.neon.tech') and '-pooler.' not in host)
  return hashlib.sha256(json.dumps(plan,sort_keys=True).encode()).hexdigest()
 
+def approved_dns(plan,side):
+ network=ipaddress.ip_network(plan[side+'_cidr'],strict=True)
+ require(network.version==4 and network.prefixlen==32)
+ pin=str(network.network_address)
+ values=plan.get(side+'_dns_answers',[pin])
+ require(isinstance(values,list) and 0<len(values)<=16 and all(isinstance(v,str) for v in values))
+ require(all(str(ipaddress.IPv4Address(v))==v for v in values) and len(set(values))==len(values) and pin in values)
+ return set(values),pin
+
 def verify_dns(plan,resolve=socket.gethostbyname_ex):
  for side in ['source','target']:
-  observed=set(resolve(plan[side+'_endpoint'])[2]);expected={str(ipaddress.ip_network(plan[side+'_cidr']).network_address)}
-  require(observed==expected)
+  expected,_=approved_dns(plan,side)
+  require(set(resolve(plan[side+'_endpoint'])[2])==expected)
+
+def provision_dns(plan):
+ """Public metadata only; a changed answer set stops creation before paid resources."""
+ n=plan['neon'];p={}
+ for side in ['source','target']:
+  p[side+'_endpoint']=n[side]['endpoint'];p[side+'_dns_answers']=n[side]['dns_answers']
+  p[side+'_cidr']=plan['parameters']['SourceCidr' if side=='source' else 'TargetCidr']
+ verify_dns(p)
 
 def recover(adapter,plan,approval):
  """Content handling occurs only inside a trusted adapter after approval."""

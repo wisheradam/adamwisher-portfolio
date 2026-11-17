@@ -8,6 +8,7 @@ def check(ok):
  if not ok:raise RuntimeError('Control gate failed')
 def digest(plan):return hashlib.sha256(json.dumps(plan,sort_keys=True).encode()).hexdigest()
 s=importlib.util.spec_from_file_location('ownership',Path(__file__).with_name('neon-ec2-ownership.py'));o=importlib.util.module_from_spec(s);s.loader.exec_module(o)
+s=importlib.util.spec_from_file_location('protocol',Path(__file__).with_name('neon-ec2-protocol.py'));protocol=importlib.util.module_from_spec(s);s.loader.exec_module(protocol)
 ACTIONS=['provision-vault','provision','provision-initializer','remove-initializer','teardown','verify']
 def approval(plan,receipt,action):
  return digest({'action':action,'plan':plan,'receipt':receipt,'templates':{k:digest(v) for k,v in m.stacks().items()}})
@@ -73,6 +74,7 @@ def main():
    check(parameters['ArchiveBucket']==verified_vault['Bucket'] and parameters['KeySecretArn']==verified_vault['KeySecretArn'] and parameters['VaultStackId']==receipt['vault']['stack_id'])
    expiry=datetime.datetime.fromisoformat(parameters['Expiry']).replace(tzinfo=datetime.timezone.utc)
    check(0<(expiry-datetime.datetime.now(datetime.timezone.utc)).total_seconds()<=8*3600)
+   if 'neon' in plan:protocol.provision_dns(plan)
    create(cfn,plan,receipt,state_path,'runner',parameters)
    runner,resources=o.stack(cfn,plan,receipt,'runner',m.stacks()['runner'])
    out=o.outputs(runner)

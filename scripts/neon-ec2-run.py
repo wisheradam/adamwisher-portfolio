@@ -4,6 +4,20 @@ import argparse,configparser,hashlib,importlib.util,json,os,shutil,sys,tempfile
 from pathlib import Path
 s=importlib.util.spec_from_file_location('adapter',Path(__file__).with_name('neon-ec2-adapter.py'));a=importlib.util.module_from_spec(s);s.loader.exec_module(a)
 
+def validate_services(plan,config,services):
+ a.core.require(not services.defaults(),'No service defaults')
+ # Only Linux/EC2 accepts a reviewed hostaddr pin. The shared macOS validator is unchanged.
+ checked=configparser.ConfigParser(interpolation=None)
+ for section in services.sections():checked[section]={k:v for k,v in services[section].items() if k!='hostaddr'}
+ a.core.validate_plan({**plan,**config,'target_endpoint':plan['target_endpoint'].split('.')[0]},checked)
+ for side in ['source','target']:
+  service=services[config[side+'_service']]
+  a.core.require(service['host']==plan[side+'_endpoint'] and service['dbname']==plan[side+'_database'],'Database identity mismatch')
+  if side+'_dns_answers' in plan or 'hostaddr' in service:
+   _,pin=a.protocol.approved_dns(plan,side)
+   a.core.require(service.get('hostaddr')==pin,'Exact reviewed hostaddr required')
+  if side=='target' and plan.get('target_role'):a.core.require(service['user']==plan['target_role'],'Restore role mismatch')
+
 def main():
  os.umask(0o077)
  p=argparse.ArgumentParser();p.add_argument('mode',choices=['preflight','recover']);p.add_argument('--plan',required=True);p.add_argument('--approval',default='');args=p.parse_args()
@@ -22,10 +36,7 @@ def main():
    path=root/name;path.write_text(value);path.chmod(0o600)
   config={'source_service':plan['source_service'],'target_service':plan['target_service'],'recipient':plan['recipient'],'identity_file':str(root/'identity'),'service_file':str(root/'pg_service.conf'),'pass_file':str(root/'pgpass')}
   services=configparser.ConfigParser(interpolation=None);services.read(config['service_file'])
-  a.core.require(not services.defaults(),'No service defaults')
-  a.core.validate_plan({**plan,**config,'target_endpoint':plan['target_endpoint'].split('.')[0]},services)
-  a.core.require(all(services[config[k+'_service']]['host']==plan[k+'_endpoint'] for k in ['source','target']),'Service endpoint mismatch')
-  a.core.require(all(services[config[side+'_service']]['dbname']==plan[side+'_database'] for side in ['source','target']),'Database identity mismatch')
+  validate_services(plan,config,services)
   import re
   entries=[re.split(r'(?<!\\):',line) for line in material['pass_file'].splitlines() if line and not line.startswith('#')]
   expected={(services[k]['host'],'5432',services[k]['dbname'],services[k]['user']) for k in [config['source_service'],config['target_service']]}

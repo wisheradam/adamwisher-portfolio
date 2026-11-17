@@ -76,7 +76,9 @@ Receipt integrity fingerprint:
 `bd806d1b3d4c2a7eb5bfd9691320e8b99de41d89c6376814ffb59f6d4458aada`.
 This is a vault-handoff hash, **not an executable B2 provisioning approval**.
 
-## Checkpoint B2 package — blocked inputs
+## Checkpoint B2 package — historical blocked inputs
+
+The later separately authorized [restore-target evidence and complete B2 package](neon-ec2-restore-target.md) supersede this section. These were the blockers at B1 execution.
 
 Known actual bindings:
 

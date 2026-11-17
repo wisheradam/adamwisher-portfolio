@@ -17,6 +17,7 @@ export function verifyAcceptance(env,args,read=readFileSync,stat=statSync){
  if(!['postgres:','postgresql:'].includes(url.protocol)||!url.username||!url.password||url.hash||(url.port&&url.port!=='5432'))fail();
  // pg connection strings allow query host/database/user overrides. Reject all overrides and duplicates.
  if([...url.searchParams].length!==1||[...url.searchParams.keys()][0]!=='sslmode')fail();
+ if(plan.target_role&&decodeURIComponent(url.username)!==plan.target_role)fail();
  if(url.hostname!==plan.target_endpoint||decodeURIComponent(url.pathname.slice(1))!==plan.target_database||url.searchParams.get('sslmode')!=='verify-full')fail();
  if(plan.source_branch!=='br-wispy-darkness-b91vydbj'||!plan.target_branch?.startsWith('br-')||['br-wispy-darkness-b91vydbj','br-summer-bird-b915xsws'].includes(plan.target_branch))fail();
  if(['ep-morning-dew-b97in9dm','ep-gentle-firefly-b9rgczs1'].includes(url.hostname.replace('-pooler.','.').split('.')[0]))fail();

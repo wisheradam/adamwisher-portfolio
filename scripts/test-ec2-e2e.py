@@ -32,7 +32,7 @@ class E2E(unittest.TestCase):
     for name in ['synthetic_source','synthetic_restore']:
      run(['docker','exec',container,'createdb','-U','postgres',name])
     run(['docker','exec',container,'psql','-XqAt','-v','ON_ERROR_STOP=1','-U','postgres','-c','ALTER DATABASE synthetic_restore OWNER TO recovery_target'])
-    service=''.join('['+k+']\nhost=127.0.0.1\nuser=postgres\npassword=isolated-ci-only\ndbname=synthetic_'+v+'\n' for k,v in [('source','source'),('target','restore')])
+    service=''.join('['+k+']\nhost=synthetic-pin-proof.invalid\nhostaddr=127.0.0.1\nuser=postgres\npassword=isolated-ci-only\ndbname=synthetic_'+v+'\n' for k,v in [('source','source'),('target','restore')])
     (root/'services').write_text(service)
     run(['docker','cp',str(root/'services'),container+':/tmp/recovery_services'])
     for f in sorted(Path('lib/admin/migrations').glob('*.sql')):

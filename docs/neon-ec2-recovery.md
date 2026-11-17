@@ -4,7 +4,8 @@ Checkpoint A foundation: `ec0b4acd94ab3403290cc69d72f75fac11f78a27`.
 Final pre-provisioning hardening starts at `ab92763f1721c94e100f50bb1487a58990456c7a`.
 Final SHA and exact-commit CI evidence are recorded in the PR conversation.
 Checkpoint A completed without provisioning. B1 has since created only the retained
-vault; see [verified B1 execution and blocked B2 handoff](neon-ec2-b1-evidence.md).
+vault; see [verified B1 execution](neon-ec2-b1-evidence.md) and the later separately
+authorized [empty restore target and complete B2 package](neon-ec2-restore-target.md).
 No live database contents have been accessed.
 
 ## Approval boundaries
@@ -24,7 +25,8 @@ modify production, enable cutover or upgrade Neon as part of this procedure.
   SSM parameter resolved to `ami-04bbcae8eccec8bce`; revalidate before B.
 - Source project `shy-breeze-43898017`, branch `br-wispy-darkness-b91vydbj`, database
   `neondb`, direct host `ep-morning-dew-b97in9dm.c-7.eu-central-1.aws.neon.tech`.
-- Neon metadata reports `free_v3`, PostgreSQL 18, 2/10 branches, 1 GiB branch limit,
+- Neon metadata reports `free_v3`, PostgreSQL 18, 3/10 branches after the authorized
+  restore-target preparation, 1 GiB branch limit,
   source logical size 34,521,088 bytes and project public transfer 26,038 bytes.
   Published Free allowances: 100 CU-hours/project/month, 1 GiB storage and 5 GiB
   public transfer. These metadata counters do not prove an exact remaining billing
@@ -153,6 +155,9 @@ The owner populates the new DB-configuration secret through an approved secret i
 never through Work, command text, shell history or SSM command parameters. Its SecretString
 is JSON containing `service_file` and `pass_file` strings (and an `app_database_url` for separately approved restored-app testing), with two exact source/target
 services using sslmode=verify-full/sslrootcert=system and two exact passfile entries.
+Linux services also require the approved `hostaddr` from each /32 when the plan records
+full multi-address DNS sets; retain the exact Neon hostname for TLS/SNI/passfile checks.
+The target user must equal the dedicated role bound in the approved plan.
 No wildcard passfile entries or alternate connection options are accepted.
 
 Key initialization is executable on the attested EC2 with the separate temporary initializer
@@ -240,7 +245,8 @@ python3 scripts/neon-ec2-control.py provision-initializer --plan /PRIVATE_OPERAT
 ```
 
 `runner-inputs.json` is a JSON object with exactly the four keys above. Use the reviewed
-Canonical AMI and verified single-answer source/target IPv4 /32s; Expiry is UTC
+Canonical AMI and verified source/target IPv4 /32 pins. Record full published A sets
+in the plan’s `neon` metadata as in the current B2 package. Expiry is UTC
 `YYYY-MM-DDTHH:MM:SS`, at most eight hours ahead. No placeholder addresses/IDs can
 constitute approval. Confirm the isolated target project/branch/endpoint/database through
 Neon metadata; source remains integration-review/neondb, never production. Free limits
@@ -378,7 +384,7 @@ and stack teardown do not depend on the backup process remaining alive.
 ## Tests and security review scope
 
 CI executes only synthetic/offline recovery tests: original 10 foundation guards, seven
-new stack guards, protocol failure matrix, control guards, 38 ownership/staging/runtime/cleanup regressions, eight secret-delivery/version-pin tests, 21 application approval/target assertions,
+new stack guards, protocol failure matrix, control guards, 38 ownership/staging/runtime/cleanup regressions, eight secret-delivery/version-pin tests, 23 application approval/target assertions, 21 multi-address DNS/runtime-binding tests,
 and real PostgreSQL18/age recovery with in-memory AWS adapters. Failure cases include
 missing approval, production target, DNS drift, invalid credentials, corrupted archives,
 interrupted multipart upload, integrity mismatch, failed cleanup and orphans. The real

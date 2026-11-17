@@ -13,6 +13,13 @@ def runtime_plan(plan,receipt,inputs):
  o.check(set(inputs)<=allowed and {'target_branch','target_endpoint','target_database'}<=set(inputs))
  parameters=plan['parameters'];out=receipt['vault_outputs'];runner=receipt['runner_outputs']
  value={**inputs,'account':o.ACCOUNT,'region':o.REGION,'ec2_runtime':True,'source_branch':'br-wispy-darkness-b91vydbj','source_endpoint':'ep-morning-dew-b97in9dm.c-7.eu-central-1.aws.neon.tech','source_database':'neondb','source_service':'source','target_service':'target','ami':parameters['ReviewedAmi'],'source_cidr':parameters['SourceCidr'],'target_cidr':parameters['TargetCidr'],'bucket':out['Bucket'],'key_secret_arn':out['KeySecretArn'],'configuration_secret_arn':runner['DatabaseSecretArn'],'object_key':'recovery/'+plan['run_id']+'.age','provisioning_plan':plan,'ownership_receipt':receipt,'ownership_fingerprint':o.digest(receipt),'application_acceptance':'synthetic fixtures on this restored target only'}
+ if 'neon' in plan:
+  n=plan['neon']
+  for side in ['source','target']:
+   for suffix,field in [('branch','branch_id'),('endpoint','endpoint'),('database','database')]:
+    o.check(value[side+'_'+suffix]==n[side][field])
+   value[side+'_dns_answers']=n[side]['dns_answers']
+  value['target_role']=n['target']['role']
  protocol.fingerprint(value);return value
 
 def main():
