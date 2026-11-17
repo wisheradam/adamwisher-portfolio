@@ -1,15 +1,23 @@
 """Non-secret ownership receipts. Never adopts a stack on its name/tags alone."""
-import hashlib,json,re,os
+import hashlib,json,re,os,tempfile
 from pathlib import Path
 ACCOUNT='533267008693';REGION='eu-central-1'
 def check(value):
  if not value:raise ValueError('Ownership gate failed')
 def digest(value):return hashlib.sha256(json.dumps(value,sort_keys=True).encode()).hexdigest()
 def save(path,value):
- path=Path(path);temporary=path.with_suffix('.pending')
- fd=os.open(temporary,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
- with os.fdopen(fd,'w') as stream:json.dump(value,stream)
- os.replace(temporary,path)
+ path=Path(path)
+ # A killed writer must not leave a fixed .pending name that blocks all retries.
+ fd,temporary=tempfile.mkstemp(prefix='.'+path.name+'.',suffix='.pending',dir=path.parent)
+ try:
+  with os.fdopen(fd,'w') as stream:
+   json.dump(value,stream);stream.flush();os.fsync(stream.fileno())
+  os.replace(temporary,path)
+  directory=os.open(path.parent,os.O_RDONLY)
+  try:os.fsync(directory)
+  finally:os.close(directory)
+ finally:
+  if os.path.exists(temporary):os.unlink(temporary)
 def validate(plan):
  check(plan['account']==ACCOUNT and plan['region']==REGION)
  check(re.fullmatch(r'[a-f0-9]{32}',plan['run_id']))

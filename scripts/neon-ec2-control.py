@@ -151,6 +151,6 @@ def main():
    except Exception as error:
     check(getattr(error,'response',{}).get('Error',{}).get('Code') in ['NoSuchEntity','ResourceNotFoundException','InvalidDocument'])
    else:check(False)
-  print(json.dumps({'temporary_ec2_network_storage_absent':True,'vault_stack_present':True,'credential_revocation':'requires separate verified owner action'}));return 0
+  print(json.dumps({'temporary_ec2_network_storage_absent':True,'vault_stack_present':True,'archive_version_verified':not plan.get('failure_cleanup',False),'key_version_verified':not plan.get('failure_cleanup',False),'credential_revocation':'requires separate verified owner action'}));return 0
  except Exception:print('STOP: provisioning/cleanup not verified; inspect ownership locally, no private diagnostics emitted.',file=sys.stderr);return 1
 if __name__=='__main__':sys.exit(main())

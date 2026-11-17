@@ -88,6 +88,11 @@ class Tests(unittest.TestCase):
   receipt={};self.cfn.describe_stack_events.return_value={'StackEvents':[{'ClientRequestToken':'a'*32+'-vault','ResourceType':'AWS::CloudFormation::Stack'}]}
   with tempfile.TemporaryDirectory() as d:c.create(self.cfn,self.plan,receipt,Path(d)/'receipt.json','vault')
   self.assertEqual(receipt['vault']['stack_id'],self.sid);self.cfn.create_stack.assert_not_called()
+ def test_interrupted_atomic_writer_does_not_block_retry(self):
+  with tempfile.TemporaryDirectory() as d:
+   path=Path(d)/'receipt.json';path.with_suffix('.pending').write_text('interrupted synthetic write')
+   o.save(path,{'version':1});o.save(path,{'version':2})
+   self.assertEqual(json.loads(path.read_text()),{'version':2});self.assertEqual(path.stat().st_mode&0o777,0o600)
  def test_create_failure_keeps_cleanup_receipt(self):
   self.cfn.describe_stacks.side_effect=[Missing(),{'Stacks':[self.actual]}]
   self.cfn.create_stack.return_value={'StackId':self.sid};self.cfn.get_waiter.return_value.wait.side_effect=RuntimeError('synthetic failure')

@@ -370,7 +370,7 @@ and stack teardown do not depend on the backup process remaining alive.
 ## Tests and security review scope
 
 CI executes only synthetic/offline recovery tests: original 10 foundation guards, seven
-new stack guards, protocol failure matrix, control guards, 30 ownership/staging/runtime/cleanup regressions, five secret-environment tests, 11 application approval/target assertions,
+new stack guards, protocol failure matrix, control guards, 31 ownership/staging/runtime/cleanup regressions, five secret-environment tests, 11 application approval/target assertions,
 and real PostgreSQL18/age recovery with in-memory AWS adapters. Failure cases include
 missing approval, production target, DNS drift, invalid credentials, corrupted archives,
 interrupted multipart upload, integrity mismatch, failed cleanup and orphans. The real
