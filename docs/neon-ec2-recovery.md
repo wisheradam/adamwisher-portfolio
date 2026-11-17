@@ -285,8 +285,12 @@ key + unique version stage. DescribeSecret must map each unique label to exactly
 approved VersionId; pins are checked again immediately before the child starts. No
 names, AWSCURRENT aliases, JSON subkeys, alternate endpoints/interpreters or unrelated
 secrets are accepted. Keep labels immutable and prohibit key writes after initialization.
-The official resolver remains unchanged; its backend must be verified on EC2 without
-logging secret responses before C. No secret-read call runs in Work or CI.
+The official resolver file remains unchanged. A tested runtime bridge validates its
+exact operation/ARN/stage/region and appends native `--version-id` to the official MCP
+request. AWS therefore checks VersionId and VersionStage atomically. The bundled
+SMA path is disabled because it cannot enforce that native version pin; no fallback to
+label-only retrieval is permitted. The official MCP backend must be verified on EC2
+without logging secret responses before C. No secret-read call runs in Work or CI.
 
 On EC2 (code paths relative to the approved code directory):
 
@@ -370,7 +374,7 @@ and stack teardown do not depend on the backup process remaining alive.
 ## Tests and security review scope
 
 CI executes only synthetic/offline recovery tests: original 10 foundation guards, seven
-new stack guards, protocol failure matrix, control guards, 31 ownership/staging/runtime/cleanup regressions, five secret-environment tests, 11 application approval/target assertions,
+new stack guards, protocol failure matrix, control guards, 31 ownership/staging/runtime/cleanup regressions, eight secret-delivery/version-pin tests, 11 application approval/target assertions,
 and real PostgreSQL18/age recovery with in-memory AWS adapters. Failure cases include
 missing approval, production target, DNS drift, invalid credentials, corrupted archives,
 interrupted multipart upload, integrity mismatch, failed cleanup and orphans. The real

@@ -43,8 +43,12 @@ if __name__=='__main__':
   root=Path(tempfile.mkdtemp(prefix='neon-launch-attest-',dir='/run'))
   try:ec2.Adapter(boto3,plan,{},root).attest(plan)
   finally:shutil.rmtree(root)
+  spec=importlib.util.spec_from_file_location('pinned',Path(__file__).with_name('neon-versioned-resolver.py'));pinned=importlib.util.module_from_spec(spec);spec.loader.exec_module(pinned)
+  def pinned_resolve(reference):
+   side='configuration' if reference==approved_refs['RECOVERY_CONFIGURATION'] else 'key'
+   return pinned.resolve(official,reference,plan[side+'_secret_arn'],plan[side+'_version'],bindings.stage(plan[side+'_version']),plan['region'])
   def pinned_execute(command,**kwargs):
    if bindings.references(plan,boto3.client('secretsmanager',region_name=plan['region']))!=approved_refs:raise ValueError('Secret pin drift')
    return subprocess.run(command,**kwargs)
-  sys.exit(launch(command,supplied,approved_references=approved_refs,execute=pinned_execute))
+  sys.exit(launch(command,supplied,approved_references=approved_refs,execute=pinned_execute,resolver=pinned_resolve))
  except Exception:print('STOP: runtime secret resolution failed; no private diagnostics.',file=sys.stderr);sys.exit(1)
