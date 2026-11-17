@@ -321,7 +321,9 @@ Use the launcher with `--approval C_FINGERPRINT` and child
 `/opt/neon-node20/bin/node scripts/neon-restored-app-acceptance.mjs --plan runtime-plan.json --approval C_FINGERPRINT`.
 The launcher requires the successful recovery receipt; the harness independently checks
 the canonical approved plan fingerprint, receipt, target branch/host/database and TLS.
-Environment-only approval flags no longer authorize acceptance.
+Environment-only approval flags no longer authorize acceptance. Connection URLs permit
+only one query parameter (`sslmode=verify-full`); host/database/user/options overrides,
+duplicate parameters, alternate ports/protocols and fragments are rejected before any connection.
 It checks the five migration checksums, synthetic Super Admin/Editor/Read Only sessions,
 anonymous denial, server RBAC, Draft/publication isolation, rollback, audit creation and
 logout revocation. It modifies only uniquely named synthetic fixtures on the restore
@@ -374,7 +376,7 @@ and stack teardown do not depend on the backup process remaining alive.
 ## Tests and security review scope
 
 CI executes only synthetic/offline recovery tests: original 10 foundation guards, seven
-new stack guards, protocol failure matrix, control guards, 33 ownership/staging/runtime/cleanup regressions, eight secret-delivery/version-pin tests, 11 application approval/target assertions,
+new stack guards, protocol failure matrix, control guards, 33 ownership/staging/runtime/cleanup regressions, eight secret-delivery/version-pin tests, 21 application approval/target assertions,
 and real PostgreSQL18/age recovery with in-memory AWS adapters. Failure cases include
 missing approval, production target, DNS drift, invalid credentials, corrupted archives,
 interrupted multipart upload, integrity mismatch, failed cleanup and orphans. The real
