@@ -22,4 +22,4 @@ def template():
     return {'AWSTemplateFormatVersion':'2010-09-09','Description':'Unapplied recovery foundation; requires checkpoint B approval', 'Rules':{'AccountRegion':{'Assertions':[{'Assert':{'Fn::Equals':[ref('AWS::AccountId'),'533267008693']},'AssertDescription':'Approved account only'},{'Assert':{'Fn::Equals':[ref('AWS::Region'),'eu-central-1']},'AssertDescription':'Approved region only'}]}},'Parameters':{'ReviewedAmi':{'Type':'AWS::EC2::Image::Id','Default':'ami-04bbcae8eccec8bce'},'NeonEndpointCidr':{'Type':'String','AllowedPattern':r'(\d{1,3}\.){3}\d{1,3}/32','Description':'Reviewed direct Neon endpoint IPv4 /32; refresh requires approval'},'Expiry':{'Type':'String','Description':'Owner reviewed UTC expiry; tag is not automatic termination'}},'Resources':resources,'Outputs':{'InstanceId':{'Value':ref('Runner')},'ArchiveBucket':{'Value':ref('Archive')}}}
 
 if __name__=='__main__':
-    print(json.dumps(template(),indent=2))
+    raise SystemExit('Legacy foundation disabled. Use stacks.py vault or stacks.py runner; owner checkpoint B required.')
