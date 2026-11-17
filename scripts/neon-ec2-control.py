@@ -12,7 +12,10 @@ ACTIONS=['provision-vault','provision','provision-initializer','remove-initializ
 def approval(plan,receipt,action):
  return digest({'action':action,'plan':plan,'receipt':receipt,'templates':{k:digest(v) for k,v in m.stacks().items()}})
 def creation_proved(cfn,sid,token):
- return any(e.get('ClientRequestToken')==token and e.get('OperationType')=='CREATE_STACK' and e.get('ResourceType')=='AWS::CloudFormation::Stack' for page in cfn.get_paginator('describe_events').paginate(StackName=sid) for e in page['OperationEvents'])
+ # DescribeEvents separates CREATE_STACK operation headers from token-bearing progress events.
+ events=[e for page in cfn.get_paginator('describe_events').paginate(StackName=sid) for e in page['OperationEvents'] if e.get('StackId')==sid]
+ creates={e['OperationId'] for e in events if e.get('OperationId') and e.get('EventType')=='STACK_EVENT' and e.get('OperationType')=='CREATE_STACK'}
+ return any(e.get('OperationId') in creates and e.get('ClientRequestToken')==token and e.get('ResourceType')=='AWS::CloudFormation::Stack' and e.get('ResourceStatus') in ['CREATE_IN_PROGRESS','CREATE_COMPLETE'] for e in events)
 def reconcile(cfn,plan,receipt,path,kind):
  item=receipt[kind]
  if 'stack_id' not in item:

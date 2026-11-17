@@ -29,6 +29,8 @@ class Tests(unittest.TestCase):
   self.client.get_bucket_encryption.return_value={'ServerSideEncryptionConfiguration':{'Rules':[{'ApplyServerSideEncryptionByDefault':{'SSEAlgorithm':'AES256'}}]}}
   self.client.get_bucket_policy.return_value={'Policy':json.dumps({'Statement':[{'Effect':'Deny','Principal':'*','Action':'s3:*','Condition':{'Bool':{'aws:SecureTransport':'false'}},'Resource':['arn:aws:s3:::synthetic-new-bucket/*']}]})}
   self.client.describe_secret.return_value={'ARN':self.arn,'VersionIdsToStages':{self.version:[b.stage(self.version)]}}
+ def creation_events(self,token):
+  return [{'EventType':'STACK_EVENT','OperationType':'CREATE_STACK','OperationId':'create-operation','StackId':self.sid},{'EventType':'PROGRESS','OperationId':'create-operation','StackId':self.sid,'ClientRequestToken':token,'ResourceType':'AWS::CloudFormation::Stack','ResourceStatus':'CREATE_COMPLETE'}]
  def vault(self):return o.vault(self.aws,self.cfn,self.plan,self.receipt,self.template)
  def proof(self):
   proof=dict(bucket=self.out['Bucket'],key_secret_arn=self.arn,object_key='recovery/synthetic.age',archive_version='exact-version',key_version=self.version,ciphertext_bytes=100,recovery_fingerprint='f'*64,independent_key_recovery_verified=True,application_acceptance_verified=True)
@@ -88,7 +90,7 @@ class Tests(unittest.TestCase):
    with self.assertRaises(RuntimeError):c.create(self.cfn,self.plan,receipt,Path(d)/'receipt.json','vault')
   self.cfn.create_stack.assert_not_called()
  def test_interrupted_create_reconciles_exact_request_token(self):
-  receipt={};self.events=[{'ClientRequestToken':'a'*32+'-vault','ResourceType':'AWS::CloudFormation::Stack','OperationType':'CREATE_STACK'}]
+  receipt={};self.events=self.creation_events('a'*32+'-vault')
   with tempfile.TemporaryDirectory() as d:c.create(self.cfn,self.plan,receipt,Path(d)/'receipt.json','vault')
   self.assertEqual(receipt['vault']['stack_id'],self.sid);self.cfn.create_stack.assert_not_called()
  def test_interrupted_atomic_writer_does_not_block_retry(self):
@@ -98,7 +100,7 @@ class Tests(unittest.TestCase):
    self.assertEqual(json.loads(path.read_text()),{'version':2});self.assertEqual(path.stat().st_mode&0o777,0o600)
  def test_cleanup_reconciles_interrupted_initializer_without_creating_resources(self):
   receipt={'initializer':{'token':'a'*32+'-initializer'}}
-  self.events=[{'ClientRequestToken':'a'*32+'-initializer','ResourceType':'AWS::CloudFormation::Stack','OperationType':'CREATE_STACK'}]
+  self.events=self.creation_events('a'*32+'-initializer')
   with tempfile.TemporaryDirectory() as d,patch.object(c.o,'stack'):
    sid=c.reconcile(self.cfn,self.plan,receipt,Path(d)/'receipt.json','initializer');self.assertEqual(sid,self.sid)
   self.cfn.create_stack.assert_not_called()
@@ -109,6 +111,27 @@ class Tests(unittest.TestCase):
    path=Path(d)/'receipt.json'
    with self.assertRaises(RuntimeError):c.create(self.cfn,self.plan,{},path,'vault')
    saved=json.loads(path.read_text());self.assertEqual(saved['vault']['stack_id'],self.sid);self.assertEqual(path.stat().st_mode&0o777,0o600)
+class CreationEvents(unittest.TestCase):
+ setUp=Tests.setUp
+ creation_events=Tests.creation_events
+ def test_live_event_layout_across_pages(self):
+  events=self.creation_events('approved-token');pager=MagicMock();pager.paginate.return_value=[{'OperationEvents':events[:1]},{'OperationEvents':events[1:]}]
+  self.cfn.get_paginator.side_effect=None;self.cfn.get_paginator.return_value=pager
+  self.assertTrue(c.creation_proved(self.cfn,self.sid,'approved-token'))
+ def test_cross_operation_token_rejected(self):
+  self.events=self.creation_events('approved-token');self.events[1]['OperationId']='other-operation'
+  self.assertFalse(c.creation_proved(self.cfn,self.sid,'approved-token'))
+ def test_cross_stack_token_rejected(self):
+  self.events=self.creation_events('approved-token');self.events[1]['StackId']=self.sid+'other'
+  self.assertFalse(c.creation_proved(self.cfn,self.sid,'approved-token'))
+ def test_update_operation_cannot_prove_creation(self):
+  self.events=self.creation_events('approved-token');self.events[0]['OperationType']='UPDATE_STACK'
+  self.assertFalse(c.creation_proved(self.cfn,self.sid,'approved-token'))
+ def test_missing_operation_id_rejected(self):
+  self.events=self.creation_events('approved-token')
+  for event in self.events:event.pop('OperationId')
+  self.assertFalse(c.creation_proved(self.cfn,self.sid,'approved-token'))
+
 class RuntimeBindings(unittest.TestCase):
  setUp=Tests.setUp
  def runtime(self):

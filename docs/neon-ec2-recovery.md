@@ -3,7 +3,9 @@
 Checkpoint A foundation: `ec0b4acd94ab3403290cc69d72f75fac11f78a27`.
 Final pre-provisioning hardening starts at `ab92763f1721c94e100f50bb1487a58990456c7a`.
 Final SHA and exact-commit CI evidence are recorded in the PR conversation.
-No resources have been provisioned and no live database contents have been accessed.
+Checkpoint A completed without provisioning. B1 has since created only the retained
+vault; see [verified B1 execution and blocked B2 handoff](neon-ec2-b1-evidence.md).
+No live database contents have been accessed.
 
 ## Approval boundaries
 
@@ -376,7 +378,7 @@ and stack teardown do not depend on the backup process remaining alive.
 ## Tests and security review scope
 
 CI executes only synthetic/offline recovery tests: original 10 foundation guards, seven
-new stack guards, protocol failure matrix, control guards, 33 ownership/staging/runtime/cleanup regressions, eight secret-delivery/version-pin tests, 21 application approval/target assertions,
+new stack guards, protocol failure matrix, control guards, 38 ownership/staging/runtime/cleanup regressions, eight secret-delivery/version-pin tests, 21 application approval/target assertions,
 and real PostgreSQL18/age recovery with in-memory AWS adapters. Failure cases include
 missing approval, production target, DNS drift, invalid credentials, corrupted archives,
 interrupted multipart upload, integrity mismatch, failed cleanup and orphans. The real
