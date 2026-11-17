@@ -62,7 +62,8 @@ class Adapter:
  def verify_independent_key(self):
   # Vault key is a separate retained secret. Check its version identity, never fetch values here.
   meta=self.aws.client('secretsmanager',region_name=self.plan['region']).describe_secret(SecretId=self.plan['key_secret_arn'])
-  core.require(self.plan['key_version'] in meta['VersionIdsToStages'],'Retained recovery key version missing')
+  version=self.plan['key_version'];stage='RECOVERY_'+version.replace('-','')
+  core.require(stage in meta['VersionIdsToStages'].get(version,[]) and sum(stage in labels for labels in meta['VersionIdsToStages'].values())==1,'Pinned recovery key version missing')
   marker=b'recovery-key-proof';cipher=core.run(['age','-r',self.config['recipient']],input_bytes=marker)
   core.require(core.run(['age','-d','-i',self.config['identity_file']],input_bytes=cipher)==marker,'Key does not match archive recipient')
  def empty_target(self): return json.loads(core.sql(self.config,'target',core.CATALOG))['relations']==0
@@ -80,7 +81,7 @@ class Adapter:
  def upload_encrypted(self,snapshot):
   # Encrypted bytes stream to multipart S3. No plaintext archive or ciphertext file.
   client=self.s3();bucket=self.plan['bucket'];key=self.plan['object_key']
-  upload=client.create_multipart_upload(Bucket=bucket,Key=key,ServerSideEncryption='AES256');self.upload=(bucket,key,upload['UploadId'])
+  upload=client.create_multipart_upload(Bucket=bucket,Key=key,ServerSideEncryption='AES256',Metadata={'recovery-fingerprint':protocol.fingerprint(self.plan)});self.upload=(bucket,key,upload['UploadId'])
   env=core.safe_env(self.config)
   dump=subprocess.Popen(['pg_dump','-w','-Fc','--no-owner','--no-privileges','--snapshot='+snapshot,'-d','service='+self.config['source_service']],env=env,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL)
   age=subprocess.Popen(['age','-r',self.config['recipient']],stdin=dump.stdout,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL);dump.stdout.close();parts=[]
@@ -99,14 +100,15 @@ class Adapter:
     if p.poll() is None:p.terminate();p.wait()
     if p.stdout:p.stdout.close()
  def verify_retained(self,version):
-  r=self.s3().head_object(Bucket=self.plan['bucket'],Key=self.plan['object_key'],VersionId=version)
+  r=self.s3().head_object(Bucket=self.plan['bucket'],Key=self.plan['object_key'],VersionId=version,ExpectedBucketOwner=self.plan['account'])
+  core.require(r['VersionId']==version and r.get('Metadata',{}).get('recovery-fingerprint')==protocol.fingerprint(self.plan),'Archive identity mismatch')
   core.require(0<r['ContentLength']<=1024**3 and r.get('ServerSideEncryption')=='AES256','Retained encrypted archive invalid')
  def fetch_version(self,version):
   archive_root=Path('/var/lib/neon-recovery') if self.plan.get('ec2_runtime') else self.root
   archive_root.mkdir(mode=0o700,parents=True,exist_ok=True)
   core.require(not archive_root.is_symlink() and archive_root.stat().st_mode&0o777==0o700,'Private ciphertext storage required')
   fd,name=tempfile.mkstemp(dir=archive_root,suffix='.age');os.close(fd);self.private.append(Path(name))
-  stream=self.s3().get_object(Bucket=self.plan['bucket'],Key=self.plan['object_key'],VersionId=version)['Body']
+  stream=self.s3().get_object(Bucket=self.plan['bucket'],Key=self.plan['object_key'],VersionId=version,ExpectedBucketOwner=self.plan['account'])['Body']
   try:
    with open(name,'wb') as out: shutil.copyfileobj(stream,out)
   finally: stream.close()

@@ -8,7 +8,7 @@ class Controls(unittest.TestCase):
    p=Path(d)/'plan.json';p.write_text(json.dumps(plan));argv=['control',mode,'--plan',str(p)]
    if approval:argv+=['--approval',approval]
    with patch.object(sys,'argv',argv),patch.dict(sys.modules,{'boto3':boto or MagicMock()}):return c.main()
- def setUp(self):self.p=dict(account=c.ACCOUNT,region=c.REGION,runner_stack='adam-neon-recovery-test',vault_stack='adam-neon-vault-test')
+ def setUp(self):self.p=dict(run_id='a'*32,account=c.ACCOUNT,region=c.REGION,runner_stack='adam-neon-recovery-test',vault_stack='adam-neon-vault-test')
  def test_bad_account(self):self.assertEqual(self.runplan({**self.p,'account':'other'},'plan'),1)
  def test_bad_approval_no_mutations(self):
   b=MagicMock();self.assertEqual(self.runplan(self.p,'provision','wrong',b),1);b.client.assert_not_called()

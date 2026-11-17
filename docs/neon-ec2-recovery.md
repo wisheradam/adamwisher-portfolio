@@ -1,6 +1,7 @@
 # PR #14 — EC2 recovery: Checkpoint A evidence and Checkpoint B package
 
-Implementation starting SHA: `ec0b4acd94ab3403290cc69d72f75fac11f78a27`.
+Checkpoint A foundation: `ec0b4acd94ab3403290cc69d72f75fac11f78a27`.
+Final pre-provisioning hardening starts at `ab92763f1721c94e100f50bb1487a58990456c7a`.
 Final SHA and exact-commit CI evidence are recorded in the PR conversation.
 No resources have been provisioned and no live database contents have been accessed.
 
@@ -47,9 +48,9 @@ Use NEW task stack names only:
 
 | Stack | Scope | Lifetime |
 |---|---|---|
-| `adam-neon-vault-pr14` | Private S3 bucket/policy and recovery-identity secret | Retained independently |
-| `adam-neon-recovery-pr14` | Dedicated VPC, IGW/attachment, subnet, route/association/table, SG, one EC2, IAM role/profile, expiry role/schedule, dedicated no-transcript session document, temporary DB-configuration secret | Delete at D |
-| `adam-neon-recovery-pr14-key-initializer` | Single inline PutSecretValue permission for the new retained identity secret on the new runner role | Delete immediately after key initialization, before C |
+| `adam-neon-vault-pr14-7955d1df` | Private S3 bucket/policy and recovery-identity secret | Retained independently |
+| `adam-neon-recovery-pr14-7955d1df` | Dedicated VPC, IGW/attachment, subnet, route/association/table, SG, one EC2, IAM role/profile, expiry role/schedule, dedicated no-transcript session document, temporary DB-configuration secret | Delete at D |
+| `adam-neon-recovery-pr14-7955d1df-key-initializer` | Single inline PutSecretValue permission for the new retained identity secret on the new runner role | Delete immediately after key initialization, before C |
 
 No existing VPC, role, bucket, application media, Amplify configuration, global EBS
 settings or production resource is updated. `create_stack` fails on existing names;
@@ -140,7 +141,7 @@ PostgreSQL client errors, response bodies and private values are never printed.
 
 The runner role has no SSM GetParameter privileges or managed SSM Core policy. It has
 only SSM control/data channels and instance heartbeat, regional EC2 inspection, the
-dedicated S3 recovery prefix, and read/describe permissions for exactly the two recovery
+dedicated S3 recovery prefix, exact-stack CloudFormation metadata and vault security metadata, and read/describe permissions for exactly the two recovery
 secrets. It cannot delete S3 versions/buckets/keys, read application media, change IAM,
 change global encryption, or modify production. The expiry role can terminate only the
 one runner instance. Metadata inspection permissions require wildcard resources because
@@ -154,10 +155,10 @@ No wildcard passfile entries or alternate connection options are accepted.
 
 Key initialization is executable on the attested EC2 with the separate temporary initializer
 policy. `neon-key-initialize.py --plan ... --secret-arn ...` checks that the retained secret
-has no versions, generates an age identity in memory, stores it using PutSecretValue,
+has no versions, requires its separately approved runtime-plan fingerprint, verifies vault/runner/initializer ownership, generates an age identity in memory, stores it using PutSecretValue,
 and emits only the public recipient and VersionId. No private key file/output is made.
 Delete the initializer policy stack immediately and verify PutSecretValue is denied
-for the runner before C. Keep the `RECOVERY` label and pinned VersionId in the retained
+for the runner before C. Keep its unique `RECOVERY_<VersionId without hyphens>` label and pinned VersionId in the retained
 vault; never rotate/delete them while any archive depends on them.
 
 Secret delivery uses `neon-secret-launcher.py` with `{{resolve:secretsmanager:...}}`
@@ -179,49 +180,144 @@ identity and decrypts using independent retained key state and the retained arch
 This proves the implemented cryptographic/lifecycle path, **not actual AWS termination**.
 D must recheck actual S3 VersionId and retained secret version after termination.
 
-## Executable owner phases (not run during implementation)
+## Checkpoint B — staged approvals and executable procedure
 
-Use an approved private non-secret plan file. Controller modes require a matching plan
-fingerprint and correct STS account. Examples below are procedures, NOT execution approval:
+**This package requests no execution during implementation.** Never reuse one fingerprint
+for several phases. Each controller fingerprint covers the action, complete plan, current
+ownership receipt and all three template hashes. Generated identifiers cannot be approved
+before creation; B1 approves only the empty vault, B2 reviews and approves its actual
+outputs plus the runner, and B3/B4 separately authorize the exact key initializer and
+initialization. An approval is a human decision; a printed fingerprint is not approval.
+
+| Boundary | Approved scope and evidence | Excluded |
+|---|---|---|
+| B1 | New vault only, account/region/run ID, exact templates, retained bucket/policy + empty identity secret | Runner, key material, DB access |
+| B2 | Newly minted vault StackId/bucket/key ARN, live security/ownership checks, target metadata/DNS, AMI, /32s, <=8h expiry, exact runner template | Key initialization, contents |
+| B3 | Minted runner role/DB secret/instance, exact retained key ARN, temporary initializer template | Any existing role/secret |
+| B4 | Attested instance + separately approved initialization runtime fingerprint; initialize new empty retained identity exactly once | Backup/restore |
+| C | Initializer deleted, write denial verified, immutable configuration/key version labels, live preflight fingerprint including target DB and application acceptance scope | Production or another target |
+| D | Exact retained archive/key versions and successful app/independent recovery evidence; delete only receipted runner/initializer IDs | Retained vault or Neon target disposal |
+
+On the owner's approved controller environment, install boto3 from the reviewed hash
+lock; use the existing approved AWS login, never paste credentials. Create a private
+operator directory OUTSIDE Git/Work/CI and keep all non-secret receipts there. Only code
+and sanitized evidence may be transferred through Work. Do not run the following
+mutating modes until the corresponding explicit approval.
 
 ```bash
-python3 scripts/neon-ec2-control.py plan --plan approved-plan.json
-# After explicit B approval of that fingerprint only:
-python3 scripts/neon-ec2-control.py provision-vault --plan approved-plan.json --approval FINGERPRINT
-python3 scripts/neon-ec2-control.py provision --plan approved-plan.json --approval FINGERPRINT
-python3 scripts/neon-ec2-control.py provision-initializer --plan approved-plan.json --approval FINGERPRINT
-# Run key initialization on the approved instance, then remove initializer permissions:
-python3 scripts/neon-ec2-control.py remove-initializer --plan approved-plan.json --approval FINGERPRINT
+umask 077
+# Copy only the committed non-secret intent into the private operator directory:
+install -m 600 infra/recovery/pr14-provisioning-intent.json /PRIVATE_OPERATOR/recovery-plan.json
+python3 scripts/neon-ec2-control.py plan --stage provision-vault --plan /PRIVATE_OPERATOR/recovery-plan.json
+# STOP for B1 approval of the printed fingerprint; then:
+python3 scripts/neon-ec2-control.py provision-vault --plan /PRIVATE_OPERATOR/recovery-plan.json --approval B1_FINGERPRINT
 ```
 
-Plan keys: `account`, `region`, `vault_stack`, `runner_stack`, and `parameters` holding
-ReviewedAmi, ArchiveBucket, SourceCidr, TargetCidr, KeySecretArn and Expiry. Runtime plan
-additionally pins `ec2_runtime=true`, `ami`, source/target endpoints and /32 CIDRs,
-`source_branch`, `target_branch`, `source_service`, `target_service`, public `recipient`,
-`key_secret_arn`, `key_version`, `bucket` and unique `object_key` under recovery/.
-Obtain actual IDs from the approved new stacks and verified Neon metadata; never infer
-an empty restore target from inaccessible data. Do not use production branch IDs.
+B1's proposed intent is committed in `infra/recovery/pr14-provisioning-intent.json`.
+Its fingerprint is recorded with exact-SHA evidence in the PR. The controller persists
+creation intent BEFORE `create_stack`, then immediately records AWS's exact StackId.
+A process interrupted between those operations may reconcile only a stack with the
+same creation request token, task/run tags, account/region/name and template hash. An
+unrelated existing stack, even one with the same prefix, is rejected, never adopted.
 
-On EC2, launch the preflight using references only (actual ARNs are nonsecret inputs):
+After B1, `recovery-plan.ownership.json` contains only public identifiers and hashes.
+`bind-runner` verifies CFN resource ownership, vault outputs, ExpectedBucketOwner,
+versioning, all four public-access blocks, AES256 encryption, retained TLS-deny policy
+and exact secret ARN. It accepts ONLY ReviewedAmi, SourceCidr, TargetCidr and Expiry
+in the owner's `runner-inputs.json`; bucket/key/VaultStackId are derived exclusively
+from the new vault receipt. No existing bucket or secret can be substituted.
+
+```bash
+python3 scripts/neon-ec2-plan.py bind-runner --plan /PRIVATE_OPERATOR/recovery-plan.json --inputs /PRIVATE_OPERATOR/runner-inputs.json
+python3 scripts/neon-ec2-control.py plan --stage provision --plan /PRIVATE_OPERATOR/recovery-plan.json
+# STOP for B2 approval of actual generated IDs and this new fingerprint; then:
+python3 scripts/neon-ec2-control.py provision --plan /PRIVATE_OPERATOR/recovery-plan.json --approval B2_FINGERPRINT
+python3 scripts/neon-ec2-control.py plan --stage provision-initializer --plan /PRIVATE_OPERATOR/recovery-plan.json
+# STOP for B3 approval of the minted role + key ARN; then:
+python3 scripts/neon-ec2-control.py provision-initializer --plan /PRIVATE_OPERATOR/recovery-plan.json --approval B3_FINGERPRINT
+```
+
+`runner-inputs.json` is a JSON object with exactly the four keys above. Use the reviewed
+Canonical AMI and verified single-answer source/target IPv4 /32s; Expiry is UTC
+`YYYY-MM-DDTHH:MM:SS`, at most eight hours ahead. No placeholder addresses/IDs can
+constitute approval. Confirm the isolated target project/branch/endpoint/database through
+Neon metadata; source remains integration-review/neondb, never production. Free limits
+and source/target DNS must be checked again immediately before provisioning.
+
+Runtime public inputs are a JSON object with `target_branch`, `target_endpoint`,
+`target_database`, and (after initialization) `recipient`, `key_version`,
+`configuration_version`. No credentials belong in these files. Runtime assembly derives
+all account/region/vault/role/configuration-secret/AMI/CIDR bindings from the receipts,
+fixes the source identity, and rejects caller overrides:
+
+```bash
+python3 scripts/neon-ec2-plan.py bind-runtime --plan /PRIVATE_OPERATOR/recovery-plan.json --inputs /PRIVATE_OPERATOR/runtime-public-inputs.json --out /PRIVATE_OPERATOR/initialization-plan.json
+```
+
+Transfer only this private non-secret plan and reviewed code to the attested EC2. B4's
+fingerprint is SHA-256 of Python `json.dumps(plan, sort_keys=True)` (the runtime protocol).
+Print it with `python3 scripts/neon-ec2-plan.py fingerprint --plan initialization-plan.json`.
+After explicit B4 approval, on EC2 only:
+
+```bash
+/opt/neon-recovery-venv/bin/python scripts/neon-key-initialize.py --plan initialization-plan.json --secret-arn EXACT_NEW_KEY_ARN --approval B4_RUNTIME_FINGERPRINT
+```
+
+It emits only public recipient + VersionId. The stored stage is
+`RECOVERY_<VersionId without hyphens>`, never an unpinned AWSCURRENT alias. The owner
+populates the exact new DB-configuration secret using an approved secret interface,
+assigning a unique stage with the SAME formula for its exact VersionId. Never supply
+secret contents through Work, shell text/history, SSM command parameters or screenshots.
+Update only the public version IDs/recipient in runtime-public-inputs.json.
+
+```bash
+python3 scripts/neon-ec2-control.py plan --stage remove-initializer --plan /PRIVATE_OPERATOR/recovery-plan.json
+# Approve removal (may be included in B3's explicit cleanup authorization), then:
+python3 scripts/neon-ec2-control.py remove-initializer --plan /PRIVATE_OPERATOR/recovery-plan.json --approval REMOVE_FINGERPRINT
+# Verify runner PutSecretValue denied; bind a NEW final runtime plan with updated receipts:
+python3 scripts/neon-ec2-plan.py bind-runtime --plan /PRIVATE_OPERATOR/recovery-plan.json --inputs /PRIVATE_OPERATOR/runtime-public-inputs.json --out /PRIVATE_OPERATOR/runtime-plan.json
+```
+
+The launcher live-verifies vault and runner ownership, all actual provisioning parameters,
+exact role/config-secret outputs and initializer deletion BEFORE resolving any reference.
+Both reference strings must equal their canonical full ARN + SecretString + empty JSON
+key + unique version stage. DescribeSecret must map each unique label to exactly the
+approved VersionId; pins are checked again immediately before the child starts. No
+names, AWSCURRENT aliases, JSON subkeys, alternate endpoints/interpreters or unrelated
+secrets are accepted. Keep labels immutable and prohibit key writes after initialization.
+The official resolver remains unchanged; its backend must be verified on EC2 without
+logging secret responses before C. No secret-read call runs in Work or CI.
+
+On EC2 (code paths relative to the approved code directory):
 
 ```bash
 /opt/neon-recovery-venv/bin/python scripts/neon-secret-launcher.py \
   --runtime-plan runtime-plan.json \
-  --configuration-ref '{{resolve:secretsmanager:DB_CONFIG_SECRET_ARN}}' \
-  --identity-ref '{{resolve:secretsmanager:RETAINED_KEY_ARN}}' -- \
+  --configuration-ref '{{resolve:secretsmanager:EXACT_DB_SECRET_ARN:SecretString::RECOVERY_CONFIG_VERSION_WITHOUT_HYPHENS}}' \
+  --identity-ref '{{resolve:secretsmanager:EXACT_KEY_SECRET_ARN:SecretString::RECOVERY_KEY_VERSION_WITHOUT_HYPHENS}}' -- \
   /opt/neon-recovery-venv/bin/python scripts/neon-ec2-run.py preflight --plan runtime-plan.json
 ```
 
-After C approval only, use the same launcher with `recover --plan ... --approval ...`.
-The restored-app harness additionally rejects both the production direct/pooled endpoint and the source endpoint, even if a supplied branch label is wrong. Its fingerprint includes fresh permission observations and service mapping, not passwords.
-Only sanitized status, the archive VersionId and integrity booleans are emitted.
-Any changed role, endpoint, configuration or failed check requires a fresh preflight.
+Preflight persists its complete observed non-secret plan mode 600, then prints C's
+fingerprint. This fixes the prior observation/fingerprint round-trip dependency.
+Only after explicit C approval use the SAME launcher/references with BOTH launcher
+`--approval C_FINGERPRINT` and child
+`recover --plan runtime-plan.json --approval C_FINGERPRINT`.
+A successful recovery persists `runtime-plan.recovery.json`, containing the approved
+fingerprint, exact target, immutable archive VersionId, ciphertext byte count and key
+version, plus MATCH status. No table values/digests, URLs with credentials or keys are
+included. Any changed inputs/observations require new preflight and approval.
 
 ## Restored application acceptance and teardown
 
 `neon-restored-app-acceptance.mjs` is a separately gated restored-target harness. Run only
 on the approved target with an approved server-side runtime URL delivered through the
 same secret boundary, a reviewed Node runtime, locked dependencies and production build.
+Use the launcher with `--approval C_FINGERPRINT` and child
+`/opt/neon-node20/bin/node scripts/neon-restored-app-acceptance.mjs --plan runtime-plan.json --approval C_FINGERPRINT`.
+The launcher requires the successful recovery receipt; the harness independently checks
+the canonical approved plan fingerprint, receipt, target branch/host/database and TLS.
+Environment-only approval flags no longer authorize acceptance.
 It checks the five migration checksums, synthetic Super Admin/Editor/Read Only sessions,
 anonymous denial, server RBAC, Draft/publication isolation, rollback, audit creation and
 logout revocation. It modifies only uniquely named synthetic fixtures on the restore
@@ -237,23 +333,44 @@ stack removes its temporary AWS DB secret; the archive/key vault is never delete
 Neon target deletion remains a separate approval.
 
 ```bash
-python3 scripts/neon-ec2-control.py teardown --plan approved-plan.json --approval FINGERPRINT
-python3 scripts/neon-ec2-control.py verify --plan approved-plan.json --approval FINGERPRINT
+python3 scripts/neon-ec2-control.py plan --stage teardown --plan /PRIVATE_OPERATOR/recovery-plan.json
+# Obtain D approval, then:
+python3 scripts/neon-ec2-control.py teardown --plan /PRIVATE_OPERATOR/recovery-plan.json --approval D_FINGERPRINT
+# Receipt changed, so generate the distinct read-only verification fingerprint:
+python3 scripts/neon-ec2-control.py plan --stage verify --plan /PRIVATE_OPERATOR/recovery-plan.json
+python3 scripts/neon-ec2-control.py verify --plan /PRIVATE_OPERATOR/recovery-plan.json --approval VERIFY_FINGERPRINT
 ```
+
+Before normal D, copy the non-secret recovery receipt into `plan.retained`, rename its
+`fingerprint` to `recovery_fingerprint`, and add `independent_key_recovery_verified=true`
+and `application_acceptance_verified=true` ONLY after those operations pass. These are
+owner attestations, not substitutes for live checks. Preserve the external custodian's
+non-sensitive evidence separately. Before AND after stack deletion, the controller
+HEADs exactly that object VersionId with ExpectedBucketOwner, checks returned VersionId,
+AES256, bytes and recovery-fingerprint metadata, and DescribeSecret verifies the exact
+retained key version + unique stage, with no pending secret deletion. It never reads
+archive contents or secret values during owner-side cleanup. Actual post-termination
+independent decryption remains a C/D live-evidence requirement, not a synthetic claim.
 
 The controller checks task ownership, deletes only the disposable stack, waits for deletion,
 then inventories EC2 instances, EBS, ENIs, VPCs, subnets, security groups, routes and gateways
 for task orphans. During teardown it also checks prior role/profile/schedule/session-document
 IDs are absent. It fails rather than reports success if any remain or deletion fails.
-Explicitly approved `failure_cleanup=true` permits emergency cleanup after a failed/unused runner; it never claims backup/application success and still preserves the vault. Attached EBS/ENI IDs and IAM/secret/scheduler IDs are recorded in a private non-sensitive receipt and checked directly; missing receipt or ambiguous API failure stops verification. A retained vault and a manual credential-revocation requirement are reported separately.
-If a process is interrupted, retry against the same task receipt/stack ownership; never
+An explicitly approved new teardown fingerprint with `failure_cleanup=true` permits emergency cleanup after a failed/unused runner; it never claims backup/application success and still preserves the vault. Attached EBS/ENI IDs and IAM/secret/scheduler IDs are recorded in a private non-sensitive receipt, hashed into the ownership state, and checked directly; missing receipt or ambiguous API failure stops verification. A retained vault and a manual credential-revocation requirement are reported separately.
+The failed initializer is removed first by its receipted StackId; partially rolled-back
+runner stacks remain cleanable without an archive-success claim. The retained vault is
+never deleted, including on failure. If vault creation itself fails before any runner
+exists, retain its exact failure receipt and any retained resources for separate owner
+review; do not adopt or delete another vault to retry.
+If a process is interrupted, regenerate a stage fingerprint from the saved receipt,
+obtain approval for the retry and use the same task ownership; never
 broaden cleanup to arbitrary accounts, resources or name prefixes. Paid compute expiry
 and stack teardown do not depend on the backup process remaining alive.
 
 ## Tests and security review scope
 
 CI executes only synthetic/offline recovery tests: original 10 foundation guards, seven
-new stack guards, protocol failure matrix, control guards, secret-environment tests,
+new stack guards, protocol failure matrix, control guards, 30 ownership/staging/runtime/cleanup regressions, five secret-environment tests, 11 application approval/target assertions,
 and real PostgreSQL18/age recovery with in-memory AWS adapters. Failure cases include
 missing approval, production target, DNS drift, invalid credentials, corrupted archives,
 interrupted multipart upload, integrity mismatch, failed cleanup and orphans. The real

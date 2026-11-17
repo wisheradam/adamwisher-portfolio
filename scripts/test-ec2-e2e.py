@@ -10,14 +10,14 @@ def run(cmd,data=None):
 class AWS:
  def __init__(self):self.parts={};self.versions={};self.failed=False
  def client(self,service,**kw):return self
- def describe_secret(self,**kw):return {'VersionIdsToStages':{'key-v1':['AWSCURRENT']}}
- def create_multipart_upload(self,**kw):self.parts={};return {'UploadId':'upload'}
+ def describe_secret(self,**kw):return {'VersionIdsToStages':{'key-v1':['AWSCURRENT','RECOVERY_keyv1']}}
+ def create_multipart_upload(self,**kw):self.parts={};self.metadata=kw['Metadata'];return {'UploadId':'upload'}
  def upload_part(self,**kw):
   if self.failed:raise RuntimeError('synthetic upload interruption')
   self.parts[kw['PartNumber']]=kw['Body'];return {'ETag':str(kw['PartNumber'])}
  def complete_multipart_upload(self,**kw):self.versions['v1']=b''.join(self.parts[k] for k in sorted(self.parts));self.parts={};return {'VersionId':'v1'}
  def abort_multipart_upload(self,**kw):self.parts={}
- def head_object(self,**kw):return {'ContentLength':len(self.versions[kw['VersionId']]),'ServerSideEncryption':'AES256'}
+ def head_object(self,**kw):return {'ContentLength':len(self.versions[kw['VersionId']]),'ServerSideEncryption':'AES256','VersionId':kw['VersionId'],'Metadata':self.metadata}
  def get_object(self,**kw):return {'Body':io.BytesIO(self.versions[kw['VersionId']])}
 class E2E(unittest.TestCase):
  def test_roundtrip_and_corruption(self):
@@ -46,13 +46,14 @@ INSERT INTO audit_events(id,actor_id,action,entity_type,entity_id,created_at) VA
     run([str(bin/'psql'),'-XqAtw','-v','ON_ERROR_STOP=1','-d','service=source'],seed.encode())
     run(['age-keygen','-o',str(runtime/'identity')]);recipient=run(['age-keygen','-y',str(runtime/'identity')]).decode().strip()
     cfg=dict(source_service='source',target_service='target',recipient=recipient,identity_file=str(runtime/'identity'),service_file=str(root/'services'),pass_file=str(root/'unused'))
-    plan=dict(source_endpoint='localhost',target_endpoint='localhost',source_cidr='127.0.0.1/32',target_cidr='127.0.0.1/32',region='eu-central-1',bucket='synthetic',object_key='recovery/synthetic',key_secret_arn='synthetic',key_version='key-v1')
+    plan=dict(account='533267008693',source_endpoint='localhost',target_endpoint='localhost',source_cidr='127.0.0.1/32',target_cidr='127.0.0.1/32',region='eu-central-1',bucket='synthetic',object_key='recovery/synthetic',key_secret_arn='synthetic',key_version='key-v1')
     service=service.replace('user=postgres\npassword=isolated-ci-only\ndbname=synthetic_source','user=recovery_source\npassword=isolated-ci-only\ndbname=synthetic_source').replace('user=postgres\npassword=isolated-ci-only\ndbname=synthetic_restore','user=recovery_target\npassword=isolated-ci-only\ndbname=synthetic_restore')
     (root/'services').write_text(service);run(['docker','cp',str(root/'services'),container+':/tmp/recovery_services'])
     aws=AWS();adapter=a.Adapter(aws,plan,cfg,runtime)
     adapter.verify_independent_key()
     with self.assertRaises(RuntimeError):run([str(bin/'psql'),'-XqAtw','-v','ON_ERROR_STOP=1','-U','synthetic_nonexistent_role','-d','service=source'],b'SELECT 1;')
     protocol_plan={**plan,'account':'533267008693','source_branch':'br-wispy-darkness-b91vydbj','target_branch':'br-synthetic-isolated','source_endpoint':'ep-morning-dew-b97in9dm.c-7.eu-central-1.aws.neon.tech','target_endpoint':'ep-synthetic.c-7.eu-central-1.aws.neon.tech'}
+    adapter.plan=protocol_plan
     # Only EC2 identity and DNS are simulated; roles, preflight SQL, snapshots, dumps, crypto and restore are real.
     with patch.object(adapter,'attest',lambda p:None),patch.object(a.protocol,'verify_dns',lambda p:None):
      receipt=a.protocol.recover(adapter,protocol_plan,a.protocol.fingerprint(protocol_plan))
@@ -65,7 +66,7 @@ INSERT INTO audit_events(id,actor_id,action,entity_type,entity_id,created_at) VA
     independent=root/'independent-custodian';independent.mkdir(mode=0o700)
     (independent/'identity').write_bytes(aws.retained_identity);(independent/'identity').chmod(0o600)
     cfg={**cfg,'identity_file':str(independent/'identity')}
-    new=a.Adapter(aws,plan,cfg,independent);new.verify_independent_key();archive=new.fetch_version(version);new.authenticate(archive)
+    new=a.Adapter(aws,protocol_plan,cfg,independent);new.verify_independent_key();archive=new.fetch_version(version);new.authenticate(archive)
     Path(archive).write_bytes(Path(archive).read_bytes()[:-12])
     with self.assertRaises(RuntimeError):new.authenticate(archive)
     new.clean_private_temporary_storage();self.assertFalse(Path(archive).exists())

@@ -13,11 +13,13 @@ def stacks():
  vault['Outputs']={'Bucket':{'Value':ref('Archive')},'KeySecretArn':{'Value':ref('RecoveryIdentity')}}
  for key in ['ArchiveBucket']: t['Outputs'].pop(key,None)
  p=t['Parameters'];p.pop('NeonEndpointCidr');p['SourceCidr']={'Type':'String','AllowedPattern':r'(\d{1,3}\.){3}\d{1,3}/32'};p['TargetCidr']=dict(p['SourceCidr'])
- p.update({'ArchiveBucket':{'Type':'String'},'KeySecretArn':{'Type':'String'},'Expiry':{'Type':'String','AllowedPattern':r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}'}})
+ p.update({'ArchiveBucket':{'Type':'String'},'VaultStackId':{'Type':'String'},'KeySecretArn':{'Type':'String'},'Expiry':{'Type':'String','AllowedPattern':r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}'}})
  role=r['Role']['Properties'];role.pop('ManagedPolicyArns')
  role['Policies']=[{'PolicyName':'RecoveryOnly','PolicyDocument':{'Version':'2012-10-17','Statement':[
  {'Effect':'Allow','Action':['ssmmessages:CreateControlChannel','ssmmessages:CreateDataChannel','ssmmessages:OpenControlChannel','ssmmessages:OpenDataChannel'],'Resource':'*'},
  {'Effect':'Allow','Action':['ssm:UpdateInstanceInformation'],'Resource':'*'},
+ {'Effect':'Allow','Action':['cloudformation:DescribeStacks','cloudformation:GetTemplate','cloudformation:ListStackResources'],'Resource':[ref('AWS::StackId'),ref('VaultStackId'),sub('arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${AWS::StackName}-key-initializer/*')]},
+ {'Effect':'Allow','Action':['s3:ListBucket','s3:GetBucketVersioning','s3:GetBucketPublicAccessBlock','s3:GetEncryptionConfiguration','s3:GetBucketPolicy'],'Resource':sub('arn:aws:s3:::${ArchiveBucket}')},
  {'Effect':'Allow','Action':['s3:PutObject','s3:GetObjectVersion','s3:AbortMultipartUpload'],'Resource':sub('arn:aws:s3:::${ArchiveBucket}/recovery/*')},
  {'Effect':'Allow','Action':['secretsmanager:GetSecretValue','secretsmanager:DescribeSecret'],'Resource':[ref('DatabaseSecretArn'),ref('KeySecretArn')]},
  {'Effect':'Allow','Action':['ec2:DescribeInstances','ec2:DescribeVolumes','ec2:DescribeSecurityGroups'],'Resource':'*','Condition':{'StringEquals':{'aws:RequestedRegion':'eu-central-1'}}}

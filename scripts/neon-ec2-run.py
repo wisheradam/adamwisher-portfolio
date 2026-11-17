@@ -25,6 +25,7 @@ def main():
   a.core.require(not services.defaults(),'No service defaults')
   a.core.validate_plan({**plan,**config,'target_endpoint':plan['target_endpoint'].split('.')[0]},services)
   a.core.require(all(services[config[k+'_service']]['host']==plan[k+'_endpoint'] for k in ['source','target']),'Service endpoint mismatch')
+  a.core.require(all(services[config[side+'_service']]['dbname']==plan[side+'_database'] for side in ['source','target']),'Database identity mismatch')
   import re
   entries=[re.split(r'(?<!\\):',line) for line in material['pass_file'].splitlines() if line and not line.startswith('#')]
   expected={(services[k]['host'],'5432',services[k]['dbname'],services[k]['user']) for k in [config['source_service'],config['target_service']]}
@@ -35,8 +36,15 @@ def main():
   plan['verified_permissions']=observed
   plan['verified_services_sha256']=hashlib.sha256(json.dumps({k:dict(services[k]) for k in services.sections()},sort_keys=True).encode()).hexdigest()
   approved=a.protocol.fingerprint(plan)
-  if args.mode=='preflight': print(json.dumps({'status':'PREFLIGHT_PASS','fingerprint':approved,'contents_accessed':False}));return 0
-  result=a.protocol.recover(adapter,plan,args.approval);print(json.dumps(result));return 0
+  spec=importlib.util.spec_from_file_location('ownership',Path(__file__).with_name('neon-ec2-ownership.py'));ownership=importlib.util.module_from_spec(spec);spec.loader.exec_module(ownership)
+  if args.mode=='preflight':
+   ownership.save(Path(args.plan),plan)
+   print(json.dumps({'status':'PREFLIGHT_PASS','fingerprint':approved,'contents_accessed':False}));return 0
+  result=a.protocol.recover(adapter,plan,args.approval)
+  head=adapter.s3().head_object(Bucket=plan['bucket'],Key=plan['object_key'],VersionId=result['archive_version'],ExpectedBucketOwner=plan['account'])
+  receipt={**result,'fingerprint':approved,'target_endpoint':plan['target_endpoint'],'target_branch':plan['target_branch'],'target_database':plan['target_database'],'ciphertext_bytes':head['ContentLength'],'bucket':plan['bucket'],'object_key':plan['object_key'],'key_secret_arn':plan['key_secret_arn'],'key_version':plan['key_version']}
+  ownership.save(Path(args.plan).with_suffix('.recovery.json'),receipt)
+  print(json.dumps(result));return 0
  except Exception:
   print('STOP: controlled recovery check failed; no private diagnostics emitted.',file=sys.stderr);return 1
  finally:
