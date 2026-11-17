@@ -1,0 +1,34 @@
+# Task-specific mandatory controls, complementary to schema and IAM validation.
+let instances = Resources.*[ Type == 'AWS::EC2::Instance' ]
+let buckets = Resources.*[ Type == 'AWS::S3::Bucket' ]
+let groups = Resources.*[ Type == 'AWS::EC2::SecurityGroup' ]
+rule encrypted_imdsv2 when %instances !empty {
+    %instances.Properties.MetadataOptions.HttpTokens == 'required'
+    %instances.Properties.MetadataOptions.HttpPutResponseHopLimit == 1
+    %instances.Properties.BlockDeviceMappings[*].Ebs.Encrypted == true
+    %instances.Properties.BlockDeviceMappings[*].Ebs.DeleteOnTermination == true
+    %instances.Properties.KeyName !exists
+    %instances.Properties.InstanceType == 't3.small'
+    Resources.ExpirySchedule.Type == 'AWS::Scheduler::Schedule'
+}
+rule retained_private_vault when %buckets !empty {
+    %buckets.DeletionPolicy == 'Retain'
+    %buckets.UpdateReplacePolicy == 'Retain'
+    %buckets.Properties.PublicAccessBlockConfiguration.BlockPublicAcls == true
+    %buckets.Properties.PublicAccessBlockConfiguration.BlockPublicPolicy == true
+    %buckets.Properties.PublicAccessBlockConfiguration.IgnorePublicAcls == true
+    %buckets.Properties.PublicAccessBlockConfiguration.RestrictPublicBuckets == true
+    %buckets.Properties.VersioningConfiguration.Status == 'Enabled'
+    %buckets.Properties.BucketEncryption.ServerSideEncryptionConfiguration[*].ServerSideEncryptionByDefault.SSEAlgorithm == 'AES256'
+}
+rule no_inbound when %groups !empty {
+    %groups.Properties.SecurityGroupIngress empty
+    %groups.Properties.SecurityGroupEgress[*].IpProtocol == 'tcp'
+    %groups.Properties.SecurityGroupEgress[*].FromPort IN [443, 5432]
+}
+rule no_managed_ssm when Resources.Role exists {
+    Resources.Role.Properties.ManagedPolicyArns !exists
+}
+rule no_nat_or_endpoints {
+    Resources.*.Type NOT IN ['AWS::EC2::NatGateway', 'AWS::EC2::VPCEndpoint']
+}

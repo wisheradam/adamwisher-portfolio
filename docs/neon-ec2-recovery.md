@@ -26,6 +26,7 @@ modify production, enable cutover or upgrade Neon as part of this procedure.
   Published Free allowances: 100 CU-hours/project/month, 1 GiB storage and 5 GiB
   public transfer. These metadata counters do not prove an exact remaining billing
   allowance; recheck the console before B/C. No quota/plan changes are permitted.
+- cfn-lint 1.60.1 and checksum-verified cfn-guard 3.2.2 validate all three templates and three deliberately broken security controls. CloudFormation does not support Scheduler ActionAfterCompletion; that invalid property was removed rather than suppressed.
 - AWS `ValidateTemplate` accepted the separate runner and vault templates. This checks
   service syntax, not provisioning success, service quotas, runtime encryption or IAM.
 - `SimulatePrincipalPolicy` allowed the owner principal's requested create/delete stack,
@@ -92,7 +93,7 @@ until separately reviewed; it is NOT silently deleted at teardown. Owner review 
 must not multiply retained versions without reviewing the $5 allowance.
 
 An EventBridge Scheduler one-time UTC expiry targets TerminateInstances for **only this
-instance**, with retries and self-deletion; it is not merely a tag. AWS API outages can
+instance**, with retries; it is not merely a tag. The one-shot schedule is removed at D, not automatically after invocation. AWS API outages can
 still delay termination. Network/IAM cleanup is performed by the idempotent teardown
 controller and verified, not promised from a timer alone. The plan must include an
 owner/operator watching expiry and retrying failed stack deletion. Standard CPU credits
@@ -104,7 +105,7 @@ avoid surplus-credit charges. No guarantee of an absolute maximum AWS invoice is
 switches the signed Ubuntu package sources to HTTPS, checks the PGDG signing-key
 fingerprint, installs PostgreSQL 18 clients, age and AWS CLI, and installs the isolated
 Python SDK environment from `infra/recovery/approved-python-requirements.txt` with
-**all wheel hashes pinned**. It does not install a database server or fetch secrets.
+**all wheel hashes pinned**. It also installs the checksum-pinned Node 20.20.2 runtime, uses the npm lockfile with lifecycle scripts disabled, and builds the application before secrets are populated. It does not install a database server or fetch secrets.
 Ubuntu/PGDG signed repositories are trust anchors; record resolved package versions
 in live preflight. No curl-to-shell installer or untrusted plugin is used.
 
@@ -212,7 +213,7 @@ On EC2, launch the preflight using references only (actual ARNs are nonsecret in
 ```
 
 After C approval only, use the same launcher with `recover --plan ... --approval ...`.
-Its fingerprint includes fresh permission observations and service mapping, not passwords.
+The restored-app harness additionally rejects both the production direct/pooled endpoint and the source endpoint, even if a supplied branch label is wrong. Its fingerprint includes fresh permission observations and service mapping, not passwords.
 Only sanitized status, the archive VersionId and integrity booleans are emitted.
 Any changed role, endpoint, configuration or failed check requires a fresh preflight.
 
