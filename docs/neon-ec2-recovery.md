@@ -147,7 +147,7 @@ those EC2 Describe APIs do not support resource-level scoping.
 
 The owner populates the new DB-configuration secret through an approved secret interface;
 never through Work, command text, shell history or SSM command parameters. Its SecretString
-is JSON containing `service_file` and `pass_file` strings, with two exact source/target
+is JSON containing `service_file` and `pass_file` strings (and an `app_database_url` for separately approved restored-app testing), with two exact source/target
 services using sslmode=verify-full/sslrootcert=system and two exact passfile entries.
 No wildcard passfile entries or alternate connection options are accepted.
 
@@ -164,7 +164,7 @@ references. The official bundled asm-exec resolver is vendored unchanged with SH
 `38399ce2a9a2b5e69fc9179815d90669e80612ea1dfc4dc2d399db9608488035` from the AWS
 plugin's `aws-secrets-manager/references/asm-exec` (1.0.0). Its original command only
 resolves arguments, despite its guidance describing environment resolution. The tested
-launcher fixes that boundary: resolved values go ONLY into the child environment,
+launcher first attests EC2 before resolving any reference, then fixes that boundary: resolved values go ONLY into the child environment,
 never argv. It retrieves no values in Work/CI. No direct secret-read API is called by
 our orchestration. AWS MCP uses downstream IAM permissions; obsolete aws-mcp Invoke
 permissions are not added. Restrict SSM operator access to the custom session document,
@@ -205,6 +205,7 @@ On EC2, launch the preflight using references only (actual ARNs are nonsecret in
 
 ```bash
 /opt/neon-recovery-venv/bin/python scripts/neon-secret-launcher.py \
+  --runtime-plan runtime-plan.json \
   --configuration-ref '{{resolve:secretsmanager:DB_CONFIG_SECRET_ARN}}' \
   --identity-ref '{{resolve:secretsmanager:RETAINED_KEY_ARN}}' -- \
   /opt/neon-recovery-venv/bin/python scripts/neon-ec2-run.py preflight --plan runtime-plan.json
@@ -227,7 +228,7 @@ DB and leaves their history for review. It never logs credentials, cookies or HT
 This harness is prepared, not claimed as a live Neon PASS at A. Existing CI separately
 runs the full local authentication/security/publication/browser acceptance suites.
 
-D requires archive/key recovery evidence, application acceptance and owner-confirmed
+Normal D requires archive/key recovery evidence, application acceptance and owner-confirmed
 revocation of temporary PostgreSQL credentials before reporting completion. Termination
 alone does not revoke PostgreSQL passwords. Use the trusted Neon admin workflow to
 revoke only the new recovery roles/credentials; do not alter existing users. The disposable
@@ -243,7 +244,7 @@ The controller checks task ownership, deletes only the disposable stack, waits f
 then inventories EC2 instances, EBS, ENIs, VPCs, subnets, security groups, routes and gateways
 for task orphans. During teardown it also checks prior role/profile/schedule/session-document
 IDs are absent. It fails rather than reports success if any remain or deletion fails.
-A retained vault and a manual credential-revocation requirement are reported separately.
+Explicitly approved `failure_cleanup=true` permits emergency cleanup after a failed/unused runner; it never claims backup/application success and still preserves the vault. Attached EBS/ENI IDs and IAM/secret/scheduler IDs are recorded in a private non-sensitive receipt and checked directly; missing receipt or ambiguous API failure stops verification. A retained vault and a manual credential-revocation requirement are reported separately.
 If a process is interrupted, retry against the same task receipt/stack ownership; never
 broaden cleanup to arbitrary accounts, resources or name prefixes. Paid compute expiry
 and stack teardown do not depend on the backup process remaining alive.

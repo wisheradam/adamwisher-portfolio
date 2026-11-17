@@ -56,7 +56,7 @@ INSERT INTO audit_events(id,actor_id,action,entity_type,entity_id,created_at) VA
     adapter.clean_private_temporary_storage()
     retained_key=(root/'identity').read_bytes()
     (root/'identity').unlink();del adapter
-    independent=root/'independent-custodian';independent.mkdir()
+    independent=root/'independent-custodian';independent.mkdir(mode=0o700)
     (independent/'identity').write_bytes(retained_key);(independent/'identity').chmod(0o600)
     cfg={**cfg,'identity_file':str(independent/'identity')}
     new=a.Adapter(aws,plan,cfg,independent);new.verify_independent_key();archive=new.fetch_version(version);new.authenticate(archive)

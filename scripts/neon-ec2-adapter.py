@@ -27,7 +27,7 @@ class Adapter:
   self.aws=aws;self.plan=plan;self.config=config;self.root=Path(root);self.private=[];self.upload=None
  def attest(self,plan):
   core.require(platform.system()=='Linux' and not os.environ.get('CI'), 'Trusted EC2 Linux only')
-  core.require(not any(os.environ.get(k) for k in ['AWS_ACCESS_KEY_ID','AWS_PROFILE','AWS_WEB_IDENTITY_TOKEN_FILE']),'Instance role credentials required')
+  core.require(not any(os.environ.get(k) for k in ['AWS_ACCESS_KEY_ID','AWS_PROFILE','AWS_WEB_IDENTITY_TOKEN_FILE','AWS_CONFIG_FILE','AWS_SHARED_CREDENTIALS_FILE','AWS_CONTAINER_CREDENTIALS_FULL_URI','AWS_CONTAINER_CREDENTIALS_RELATIVE_URI','AWS_ENDPOINT_URL','ASM_EXEC_MCP_ENDPOINT','AWS_SECRETS_MANAGER_AGENT_ENDPOINT','PYTHONPATH','NODE_OPTIONS','LD_PRELOAD','HTTPS_PROXY','HTTP_PROXY']),'Instance role credentials required')
   resource.setrlimit(resource.RLIMIT_CORE,(0,0))
   core.require('Ubuntu' in Path('/etc/os-release').read_text() and '24.04' in Path('/etc/os-release').read_text(),'Ubuntu 24.04 required')
   core.require(self.root.is_dir() and self.root.stat().st_mode&0o777==0o700,'Private runtime directory required')

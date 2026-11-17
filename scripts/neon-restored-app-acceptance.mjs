@@ -4,10 +4,13 @@ import {randomBytes,scryptSync,randomUUID,createHash} from 'node:crypto';
 import {readFileSync,readdirSync} from 'node:fs';
 import {spawn} from 'node:child_process';
 import {createNeonStore} from '../lib/admin/neon-store.mjs';
+if(process.env.RECOVERY_CONFIGURATION){const config=JSON.parse(process.env.RECOVERY_CONFIGURATION);process.env.ADMIN_DATABASE_URL=config.app_database_url;delete process.env.RECOVERY_CONFIGURATION;delete process.env.RECOVERY_IDENTITY;}
 const url=new URL(process.env.ADMIN_DATABASE_URL??'');
 assert.equal(process.env.RECOVERY_APPLICATION_APPROVED,'1');
 assert.equal(url.hostname,process.env.RECOVERY_TARGET_ENDPOINT);
-assert.notEqual(url.hostname,'ep-morning-dew-b97in9dm.c-7.eu-central-1.aws.neon.tech');
+assert.ok(process.env.RECOVERY_TARGET_BRANCH?.startsWith('br-'));
+assert.ok(!['br-wispy-darkness-b91vydbj','br-summer-bird-b915xsws'].includes(process.env.RECOVERY_TARGET_BRANCH));
+assert.notEqual(url.hostname.replace('-pooler.','.'),'ep-morning-dew-b97in9dm.c-7.eu-central-1.aws.neon.tech');
 assert.equal(process.env.RECOVERY_TARGET_ISOLATED,'1');
 const store=createNeonStore(),stamp=new Date().toISOString(),runId=randomUUID(),port=34917,base=`http://127.0.0.1:${port}`;
 const users=[],server=spawn(process.execPath,['node_modules/next/dist/bin/next','start','-H','127.0.0.1','-p',String(port)],{env:{...process.env,PUBLIC_CONTENT_SOURCE:'database'},stdio:'ignore'});

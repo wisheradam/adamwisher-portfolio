@@ -44,12 +44,20 @@ def main():
   receipt_path=Path(a.plan).with_suffix('.teardown-receipt.json')
   iam_receipt=json.loads(receipt_path.read_text()) if receipt_path.exists() else []
   if a.mode=='teardown':
-   check(plan.get('archive_and_key_recovery_proof') is True)
+   check(plan.get('archive_and_key_recovery_proof') is True or plan.get('failure_cleanup') is True)
    # Inspect ownership before deletion; never delete by a broad resource prefix.
    stack=cfn.describe_stacks(StackName=plan['runner_stack'])['Stacks'][0]
    check({'Key':'Purpose','Value':'adamwisher-neon-recovery'} in stack.get('Tags',[]))
    for page in cfn.get_paginator('list_stack_resources').paginate(StackName=stack['StackId']):
-    iam_receipt.extend(r for r in page['StackResourceSummaries'] if r['ResourceType'] in ['AWS::IAM::Role','AWS::IAM::InstanceProfile','AWS::Scheduler::Schedule','AWS::SSM::Document'])
+    iam_receipt.extend(r for r in page['StackResourceSummaries'] if r['ResourceType'] in ['AWS::IAM::Role','AWS::IAM::InstanceProfile','AWS::Scheduler::Schedule','AWS::Scheduler::ScheduleGroup','AWS::SSM::Document','AWS::SecretsManager::Secret'])
+   ec2_before=boto3.client('ec2',region_name=REGION)
+   for page in cfn.get_paginator('list_stack_resources').paginate(StackName=stack['StackId']):
+    for r in page['StackResourceSummaries']:
+     if r['ResourceType']=='AWS::EC2::Instance':
+      for reservation in ec2_before.describe_instances(InstanceIds=[r['PhysicalResourceId']])['Reservations']:
+       for instance in reservation['Instances']:
+        iam_receipt.extend({'ResourceType':'Recovery::Volume','PhysicalResourceId':x['Ebs']['VolumeId']} for x in instance.get('BlockDeviceMappings',[]))
+        iam_receipt.extend({'ResourceType':'Recovery::NetworkInterface','PhysicalResourceId':x['NetworkInterfaceId']} for x in instance.get('NetworkInterfaces',[]))
    receipt_path.write_text(json.dumps(iam_receipt));receipt_path.chmod(0o600)
    cfn.delete_stack(StackName=stack['StackId']);cfn.get_waiter('stack_delete_complete').wait(StackName=stack['StackId'])
   # Verify retained vault and report orphan inventory; any found resource is a failure.
@@ -62,10 +70,30 @@ def main():
   for page in ec2.get_paginator('describe_instances').paginate(Filters=filters):
    orphan.extend(i for r in page['Reservations'] for i in r['Instances'] if i['State']['Name']!='terminated')
   check(not orphan)
+  check(bool(iam_receipt))
   for r in iam_receipt:
+   if r['ResourceType'] in ['Recovery::Volume','Recovery::NetworkInterface']:
+    api,key=('describe_volumes','VolumeIds') if r['ResourceType']=='Recovery::Volume' else ('describe_network_interfaces','NetworkInterfaceIds')
+    try:getattr(ec2,api)(**{key:[r['PhysicalResourceId']]})
+    except Exception as error:check(getattr(error,'response',{}).get('Error',{}).get('Code') in ['InvalidVolume.NotFound','InvalidNetworkInterfaceID.NotFound'])
+    else:check(False)
+    continue
+   if r['ResourceType']=='AWS::SecretsManager::Secret':
+    try:boto3.client('secretsmanager',region_name=REGION).describe_secret(SecretId=r['PhysicalResourceId'])
+    except Exception as error:check(getattr(error,'response',{}).get('Error',{}).get('Code')=='ResourceNotFoundException')
+    else:check(False)
+    continue
+   if r['ResourceType']=='AWS::Scheduler::ScheduleGroup':
+    try:boto3.client('scheduler',region_name=REGION).get_schedule_group(Name=r['PhysicalResourceId'].split('/')[-1])
+    except Exception as error:check(getattr(error,'response',{}).get('Error',{}).get('Code')=='ResourceNotFoundException')
+    else:check(False)
+    continue
    service,api,key=('iam','get_role','RoleName') if r['ResourceType']=='AWS::IAM::Role' else ('iam','get_instance_profile','InstanceProfileName') if r['ResourceType']=='AWS::IAM::InstanceProfile' else ('scheduler','get_schedule','Name') if r['ResourceType']=='AWS::Scheduler::Schedule' else ('ssm','describe_document','Name')
    try:
-    getattr(boto3.client(service,region_name=REGION),api)(**{key:r['PhysicalResourceId']})
+    kwargs={key:r['PhysicalResourceId']}
+    if service=='scheduler':
+     parts=r['PhysicalResourceId'].split('/');kwargs={'Name':parts[-1],'GroupName':parts[-2] if len(parts)>1 else plan['runner_stack']+'-expiry'}
+    getattr(boto3.client(service,region_name=REGION),api)(**kwargs)
    except Exception as error:
     check(getattr(error,'response',{}).get('Error',{}).get('Code') in ['NoSuchEntity','ResourceNotFoundException','InvalidDocument'])
    else:check(False)
