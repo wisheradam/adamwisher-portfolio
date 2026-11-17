@@ -11,6 +11,8 @@ s=importlib.util.spec_from_file_location('ownership',Path(__file__).with_name('n
 ACTIONS=['provision-vault','provision','provision-initializer','remove-initializer','teardown','verify']
 def approval(plan,receipt,action):
  return digest({'action':action,'plan':plan,'receipt':receipt,'templates':{k:digest(v) for k,v in m.stacks().items()}})
+def creation_proved(cfn,sid,token):
+ return any(e.get('ClientRequestToken')==token and e.get('OperationType')=='CREATE_STACK' and e.get('ResourceType')=='AWS::CloudFormation::Stack' for page in cfn.get_paginator('describe_events').paginate(StackName=sid) for e in page['OperationEvents'])
 def create(cfn,plan,receipt,path,kind,parameters=None):
  template=m.stacks()[kind];token=plan['run_id']+'-'+kind
  if kind not in receipt:
@@ -23,8 +25,7 @@ def create(cfn,plan,receipt,path,kind,parameters=None):
   except Exception as error:
    check(getattr(error,'response',{}).get('Error',{}).get('Code')=='ValidationError' and 'does not exist' in getattr(error,'response',{}).get('Error',{}).get('Message',''));existing=None
   if existing:
-   events=cfn.describe_stack_events(StackName=existing['StackId'])['StackEvents']
-   check(any(e.get('ClientRequestToken')==token and e.get('ResourceType')=='AWS::CloudFormation::Stack' for e in events))
+   check(creation_proved(cfn,existing['StackId'],token))
    item['stack_id']=existing['StackId'];o.stack(cfn,plan,receipt,kind,template)
   else:
    kwargs={'StackName':o.name(plan,kind),'TemplateBody':json.dumps(template),'Tags':o.tags(plan,kind),'ClientRequestToken':token}
@@ -98,8 +99,7 @@ def main():
     # Reconcile a crash immediately after create_stack with the persisted request token.
     if 'stack_id' not in receipt.get('runner',{}):
      item=receipt['runner'];existing=cfn.describe_stacks(StackName=plan['runner_stack'])['Stacks'][0]
-     events=cfn.describe_stack_events(StackName=existing['StackId'])['StackEvents']
-     check(any(e.get('ClientRequestToken')==item['token'] for e in events));item['stack_id']=existing['StackId'];o.save(state_path,receipt)
+     check(creation_proved(cfn,existing['StackId'],item['token']));item['stack_id']=existing['StackId'];o.save(state_path,receipt)
     stack,resources=o.stack(cfn,plan,receipt,'runner',m.stacks()['runner'])
     iam_receipt.extend(r for r in resources.values() if r['ResourceType'] in ['AWS::IAM::Role','AWS::IAM::InstanceProfile','AWS::Scheduler::Schedule','AWS::Scheduler::ScheduleGroup','AWS::SSM::Document','AWS::SecretsManager::Secret'])
     ec2_before=boto3.client('ec2',region_name=REGION)

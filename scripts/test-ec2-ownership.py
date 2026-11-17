@@ -19,7 +19,10 @@ class Tests(unittest.TestCase):
   self.receipt={'vault':{'stack_id':self.sid,'template_sha256':o.digest(self.template),'token':'a'*32+'-vault'}}
   self.actual={'StackId':self.sid,'StackName':self.plan['vault_stack'],'StackStatus':'CREATE_COMPLETE','Tags':o.tags(self.plan,'vault'),'Outputs':[{'OutputKey':k,'OutputValue':v} for k,v in self.out.items()]}
   self.resources=[{'LogicalResourceId':k,'PhysicalResourceId':v,'ResourceType':t} for k,v,t in [('Archive',self.out['Bucket'],'AWS::S3::Bucket'),('RecoveryIdentity',self.arn,'AWS::SecretsManager::Secret')]]
-  self.cfn=MagicMock();self.cfn.describe_stacks.return_value={'Stacks':[self.actual]};self.cfn.get_template.return_value={'TemplateBody':self.template};self.cfn.get_paginator.return_value.paginate.return_value=[{'StackResourceSummaries':self.resources}]
+  self.cfn=MagicMock();self.cfn.describe_stacks.return_value={'Stacks':[self.actual]};self.cfn.get_template.return_value={'TemplateBody':self.template};self.events=[]
+  def paginator(operation):
+   pager=MagicMock();pager.paginate.return_value=[{'OperationEvents':self.events}] if operation=='describe_events' else [{'StackResourceSummaries':self.resources}];return pager
+  self.cfn.get_paginator.side_effect=paginator
   self.aws=MagicMock();self.client=self.aws.client.return_value
   self.client.get_bucket_versioning.return_value={'Status':'Enabled'}
   self.client.get_public_access_block.return_value={'PublicAccessBlockConfiguration':{k:True for k in ['BlockPublicAcls','IgnorePublicAcls','BlockPublicPolicy','RestrictPublicBuckets']}}
@@ -80,12 +83,12 @@ class Tests(unittest.TestCase):
   plan={'configuration_secret_arn':self.arn+'other','configuration_version':self.version,'key_secret_arn':self.arn,'key_version':self.version}
   with self.assertRaises(ValueError):b.references(plan,self.client)
  def test_existing_stack_not_adopted_without_creation_token(self):
-  receipt={};self.cfn.describe_stack_events.return_value={'StackEvents':[{'ClientRequestToken':'unrelated'}]}
+  receipt={};self.events=[{'ClientRequestToken':'unrelated'}]
   with tempfile.TemporaryDirectory() as d:
    with self.assertRaises(RuntimeError):c.create(self.cfn,self.plan,receipt,Path(d)/'receipt.json','vault')
   self.cfn.create_stack.assert_not_called()
  def test_interrupted_create_reconciles_exact_request_token(self):
-  receipt={};self.cfn.describe_stack_events.return_value={'StackEvents':[{'ClientRequestToken':'a'*32+'-vault','ResourceType':'AWS::CloudFormation::Stack'}]}
+  receipt={};self.events=[{'ClientRequestToken':'a'*32+'-vault','ResourceType':'AWS::CloudFormation::Stack','OperationType':'CREATE_STACK'}]
   with tempfile.TemporaryDirectory() as d:c.create(self.cfn,self.plan,receipt,Path(d)/'receipt.json','vault')
   self.assertEqual(receipt['vault']['stack_id'],self.sid);self.cfn.create_stack.assert_not_called()
  def test_interrupted_atomic_writer_does_not_block_retry(self):
