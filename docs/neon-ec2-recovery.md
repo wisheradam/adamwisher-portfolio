@@ -6,6 +6,7 @@ Final SHA and exact-commit CI evidence are recorded in the PR conversation.
 Checkpoint A completed without provisioning. B1 has since created only the retained
 vault; see [verified B1 execution](neon-ec2-b1-evidence.md) and the later separately
 authorized [empty restore target and complete B2 package](neon-ec2-restore-target.md).
+B2 has now provisioned and attested the dedicated runner; see [actual B2 results and B3 approval](neon-ec2-b2-evidence.md).
 No live database contents have been accessed.
 
 ## Approval boundaries
@@ -108,10 +109,13 @@ avoid surplus-credit charges. No guarantee of an absolute maximum AWS invoice is
 
 `scripts/neon-ec2-bootstrap.sh` runs only on the new approved Ubuntu instance. It
 switches the signed Ubuntu package sources to HTTPS, checks the PGDG signing-key
-fingerprint, installs PostgreSQL 18 clients, age and AWS CLI, and installs the isolated
+fingerprint, installs PostgreSQL 18 clients and age, installs AWS CLI 2.40.4 from the official
+versioned distribution with pinned SHA-256 and AWS PGP verification (Ubuntu 24.04 has
+no awscli APT candidate), and installs the isolated
 Python SDK environment from `infra/recovery/approved-python-requirements.txt` with
 **all wheel hashes pinned**. It also installs the checksum-pinned Node 20.20.2 runtime, uses the npm lockfile with lifecycle scripts disabled, and builds the application before secrets are populated. It does not install a database server or fetch secrets.
-Ubuntu/PGDG signed repositories are trust anchors; record resolved package versions
+Only public APT metadata receives mode 644 so the unprivileged verifier can read it;
+private files retain the strict default umask. Ubuntu/PGDG signed repositories are trust anchors; record resolved package versions
 in live preflight. No curl-to-shell installer or untrusted plugin is used.
 
 Package the approved repository SHA without untracked files using `git archive` and
