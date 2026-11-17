@@ -96,6 +96,12 @@ class Tests(unittest.TestCase):
    path=Path(d)/'receipt.json';path.with_suffix('.pending').write_text('interrupted synthetic write')
    o.save(path,{'version':1});o.save(path,{'version':2})
    self.assertEqual(json.loads(path.read_text()),{'version':2});self.assertEqual(path.stat().st_mode&0o777,0o600)
+ def test_cleanup_reconciles_interrupted_initializer_without_creating_resources(self):
+  receipt={'initializer':{'token':'a'*32+'-initializer'}}
+  self.events=[{'ClientRequestToken':'a'*32+'-initializer','ResourceType':'AWS::CloudFormation::Stack','OperationType':'CREATE_STACK'}]
+  with tempfile.TemporaryDirectory() as d,patch.object(c.o,'stack'):
+   sid=c.reconcile(self.cfn,self.plan,receipt,Path(d)/'receipt.json','initializer');self.assertEqual(sid,self.sid)
+  self.cfn.create_stack.assert_not_called()
  def test_create_failure_keeps_cleanup_receipt(self):
   self.cfn.describe_stacks.side_effect=[Missing(),{'Stacks':[self.actual]}]
   self.cfn.create_stack.return_value={'StackId':self.sid};self.cfn.get_waiter.return_value.wait.side_effect=RuntimeError('synthetic failure')
@@ -151,7 +157,7 @@ class Cleanup(unittest.TestCase):
  setUp=Tests.setUp
  proof=Tests.proof
  # Execute the real controller + retained-version checks with synthetic AWS APIs.
- def execute_cleanup(self,wrong_version=False,orphan=False,failure=False,interrupt=False):
+ def execute_cleanup(self,wrong_version=False,orphan=False,failure=False,interrupt=False,stack_present=False):
   import sys
   plan=self.proof()
   if failure:plan.pop('retained');plan['failure_cleanup']=True
@@ -159,6 +165,7 @@ class Cleanup(unittest.TestCase):
   sid=self.sid.replace(self.plan['vault_stack'],self.plan['runner_stack'])
   receipt={**self.receipt,'run_id':plan['run_id'],'intent':c.digest({k:plan[k] for k in ['account','region','run_id','vault_stack','runner_stack']}),'vault_outputs':self.out,'runner':{'stack_id':sid,'template_sha256':c.digest(c.m.stacks()['runner'])}}
   runner={'StackId':sid,'StackStatus':'ROLLBACK_COMPLETE'}
+  self.cfn.describe_stacks.return_value={'Stacks':[{'StackId':sid,'StackStatus':'DELETE_FAILED' if stack_present else 'DELETE_COMPLETE'}]}
   resources={'Role':{'LogicalResourceId':'Role','ResourceType':'AWS::IAM::Role','PhysicalResourceId':'synthetic-role'}}
   ec2=MagicMock();ec2.get_paginator.return_value.paginate.return_value=[{'Volumes':[{}],'Reservations':[]}] if orphan else [{'Reservations':[]}]
   iam=MagicMock();missing=Exception();missing.response={'Error':{'Code':'NoSuchEntity'}};iam.get_role.side_effect=missing
@@ -185,6 +192,7 @@ class Cleanup(unittest.TestCase):
  def test_orphan_blocks_completion(self):self.assertEqual(self.execute_cleanup(orphan=True)[0],1)
  def test_failed_create_cleanup_retains_vault_without_claiming_recovery(self):
   result,sid=self.execute_cleanup(failure=True);self.assertEqual(result,0);self.cfn.delete_stack.assert_called_once_with(StackName=sid);self.client.head_object.assert_not_called()
+ def test_remaining_cloudformation_stack_blocks_completion(self):self.assertEqual(self.execute_cleanup(stack_present=True)[0],1)
  def test_interrupted_delete_can_resume_from_exact_resource_receipt(self):self.assertEqual(self.execute_cleanup(interrupt=True)[0],0)
 
 if __name__=='__main__':unittest.main()

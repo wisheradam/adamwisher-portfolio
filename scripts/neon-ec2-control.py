@@ -13,6 +13,14 @@ def approval(plan,receipt,action):
  return digest({'action':action,'plan':plan,'receipt':receipt,'templates':{k:digest(v) for k,v in m.stacks().items()}})
 def creation_proved(cfn,sid,token):
  return any(e.get('ClientRequestToken')==token and e.get('OperationType')=='CREATE_STACK' and e.get('ResourceType')=='AWS::CloudFormation::Stack' for page in cfn.get_paginator('describe_events').paginate(StackName=sid) for e in page['OperationEvents'])
+def reconcile(cfn,plan,receipt,path,kind):
+ item=receipt[kind]
+ if 'stack_id' not in item:
+  existing=cfn.describe_stacks(StackName=o.name(plan,kind))['Stacks'][0]
+  check(creation_proved(cfn,existing['StackId'],item['token']))
+  item['stack_id']=existing['StackId']
+  o.stack(cfn,plan,receipt,kind,m.stacks()[kind]);o.save(path,receipt)
+ return item['stack_id']
 def create(cfn,plan,receipt,path,kind,parameters=None):
  template=m.stacks()[kind];token=plan['run_id']+'-'+kind
  if kind not in receipt:
@@ -76,6 +84,7 @@ def main():
     check(not boto3.client('secretsmanager',region_name=REGION).describe_secret(SecretId=verified_vault['KeySecretArn']).get('VersionIdsToStages'))
     create(cfn,plan,receipt,state_path,'initializer',{'RunnerRoleName':out['RunnerRoleName'],'KeySecretArn':verified_vault['KeySecretArn']})
    else:
+    reconcile(cfn,plan,receipt,state_path,'initializer')
     init,_=o.stack(cfn,plan,receipt,'initializer',m.stacks()['initializer'])
     sid=receipt['initializer']['stack_id']
     if init['StackStatus']!='DELETE_COMPLETE':
@@ -90,16 +99,14 @@ def main():
    if not plan.get('failure_cleanup'):o.retained(boto3,plan,verified_vault)
    # Clean the exact recorded initializer even after failed provisioning. No arbitrary name deletion.
    if 'initializer' in receipt and not receipt.get('initializer_removed'):
+    reconcile(cfn,plan,receipt,state_path,'initializer')
     init,_=o.stack(cfn,plan,receipt,'initializer',m.stacks()['initializer'])
     sid=receipt['initializer']['stack_id']
     if init['StackStatus']!='DELETE_COMPLETE':
      cfn.delete_stack(StackName=sid);cfn.get_waiter('stack_delete_complete').wait(StackName=sid)
     receipt['initializer_removed']=True;o.save(state_path,receipt)
    if not receipt.get('runner_deleted'):
-    # Reconcile a crash immediately after create_stack with the persisted request token.
-    if 'stack_id' not in receipt.get('runner',{}):
-     item=receipt['runner'];existing=cfn.describe_stacks(StackName=plan['runner_stack'])['Stacks'][0]
-     check(creation_proved(cfn,existing['StackId'],item['token']));item['stack_id']=existing['StackId'];o.save(state_path,receipt)
+    reconcile(cfn,plan,receipt,state_path,'runner')
     stack,resources=o.stack(cfn,plan,receipt,'runner',m.stacks()['runner'])
     iam_receipt.extend(r for r in resources.values() if r['ResourceType'] in ['AWS::IAM::Role','AWS::IAM::InstanceProfile','AWS::Scheduler::Schedule','AWS::Scheduler::ScheduleGroup','AWS::SSM::Document','AWS::SecretsManager::Secret'])
     ec2_before=boto3.client('ec2',region_name=REGION)
@@ -124,6 +131,10 @@ def main():
   for page in ec2.get_paginator('describe_instances').paginate(Filters=filters):
    orphan.extend(i for r in page['Reservations'] for i in r['Instances'] if i['State']['Name']!='terminated')
   check(not orphan)
+  for kind in ['runner','initializer']:
+   if kind in receipt:
+    deleted=cfn.describe_stacks(StackName=receipt[kind]['stack_id'])['Stacks'][0]
+    check(deleted['StackId']==receipt[kind]['stack_id'] and deleted['StackStatus']=='DELETE_COMPLETE')
   check(receipt.get('cleanup_captured') is True)
   for r in iam_receipt:
    if r['ResourceType'] in ['Recovery::Volume','Recovery::NetworkInterface']:
