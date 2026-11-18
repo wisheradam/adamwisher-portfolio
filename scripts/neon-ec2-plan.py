@@ -3,16 +3,21 @@ import argparse,importlib.util,json,sys,uuid
 from pathlib import Path
 s=importlib.util.spec_from_file_location('bindings',Path(__file__).with_name('neon-ec2-bindings.py'));b=importlib.util.module_from_spec(s);s.loader.exec_module(b)
 s=importlib.util.spec_from_file_location('protocol',Path(__file__).with_name('neon-ec2-protocol.py'));protocol=importlib.util.module_from_spec(s);s.loader.exec_module(protocol)
+s=importlib.util.spec_from_file_location('scope',Path(__file__).with_name('neon-synthetic-scope.py'));scope=importlib.util.module_from_spec(s);s.loader.exec_module(scope)
 o=b.o
 
 def runner_parameters(inputs,outputs,receipt):
  o.check(set(inputs)=={'ReviewedAmi','SourceCidr','TargetCidr','Expiry'})
  return {**inputs,'ArchiveBucket':outputs['Bucket'],'KeySecretArn':outputs['KeySecretArn'],'VaultStackId':receipt['vault']['stack_id']}
 def runtime_plan(plan,receipt,inputs):
- allowed={'target_branch','target_endpoint','target_database','recipient','key_version','configuration_version'}
+ allowed={'target_branch','target_endpoint','target_database','recipient','key_version','configuration_version','synthetic_scope'}
  o.check(set(inputs)<=allowed and {'target_branch','target_endpoint','target_database'}<=set(inputs))
  parameters=plan['parameters'];out=receipt['vault_outputs'];runner=receipt['runner_outputs']
  value={**inputs,'account':o.ACCOUNT,'region':o.REGION,'ec2_runtime':True,'source_branch':'br-wispy-darkness-b91vydbj','source_endpoint':'ep-morning-dew-b97in9dm.c-7.eu-central-1.aws.neon.tech','source_database':'neondb','source_service':'source','target_service':'target','ami':parameters['ReviewedAmi'],'source_cidr':parameters['SourceCidr'],'target_cidr':parameters['TargetCidr'],'bucket':out['Bucket'],'key_secret_arn':out['KeySecretArn'],'configuration_secret_arn':runner['DatabaseSecretArn'],'object_key':'recovery/'+plan['run_id']+'.age','provisioning_plan':plan,'ownership_receipt':receipt,'ownership_fingerprint':o.digest(receipt),'application_acceptance':'synthetic fixtures on this restored target only'}
+ if 'synthetic_scope' in inputs:
+  o.check('neon' in plan)
+  value['source_database']=scope.SOURCE_DATABASE
+  value['source_role']=scope.SOURCE_ROLE
  if 'neon' in plan:
   n=plan['neon']
   for side in ['source','target']:
@@ -20,6 +25,9 @@ def runtime_plan(plan,receipt,inputs):
     o.check(value[side+'_'+suffix]==n[side][field])
    value[side+'_dns_answers']=n[side]['dns_answers']
   value['target_role']=n['target']['role']
+  if 'synthetic_scope' in value:
+   o.check(n['source']['role']==scope.SOURCE_ROLE)
+   scope.check_plan(value,o.check)
  protocol.fingerprint(value);return value
 
 def main():

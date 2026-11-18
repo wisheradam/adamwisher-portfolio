@@ -5,6 +5,8 @@ import urllib.request
 s=importlib.util.spec_from_file_location('core',Path(__file__).with_name('neon-macos-recovery.py'));core=importlib.util.module_from_spec(s);s.loader.exec_module(core)
 s=importlib.util.spec_from_file_location('protocol',Path(__file__).with_name('neon-ec2-protocol.py'));protocol=importlib.util.module_from_spec(s);s.loader.exec_module(protocol)
 
+s=importlib.util.spec_from_file_location('scope',Path(__file__).with_name('neon-synthetic-scope.py'));scope=importlib.util.module_from_spec(s);s.loader.exec_module(scope)
+
 def pipeline(commands,env):
  children=[]
  try:
@@ -24,7 +26,7 @@ def pipeline(commands,env):
 
 class Adapter:
  def __init__(self,aws,plan,config,root):
-  self.aws=aws;self.plan=plan;self.config=config;self.root=Path(root);self.private=[];self.upload=None
+  self.aws=aws;self.plan=plan;self.config=config;self.root=Path(root);self.private=[];self.upload=None;self.verified_snapshot=None
  def attest(self,plan):
   core.require(platform.system()=='Linux' and not os.environ.get('CI'), 'Trusted EC2 Linux only')
   core.require(not any(os.environ.get(k) for k in ['AWS_ACCESS_KEY_ID','AWS_PROFILE','AWS_WEB_IDENTITY_TOKEN_FILE','AWS_CONFIG_FILE','AWS_SHARED_CREDENTIALS_FILE','AWS_CONTAINER_CREDENTIALS_FULL_URI','AWS_CONTAINER_CREDENTIALS_RELATIVE_URI','AWS_ENDPOINT_URL','ASM_EXEC_MCP_ENDPOINT','AWS_SECRETS_MANAGER_AGENT_ENDPOINT','PYTHONPATH','NODE_OPTIONS','LD_PRELOAD','HTTPS_PROXY','HTTP_PROXY']),'Instance role credentials required')
@@ -54,6 +56,8 @@ class Adapter:
    core.require(' 18.' in core.run([tool,'--version']).decode(),'PostgreSQL 18 clients required')
   core.require(shutil.which('age'),'age missing')
  def preflight(self,plan):
+  if plan.get('ec2_runtime') or 'synthetic_scope' in plan:
+   scope.verify_inventory(core,plan,self.config)
   # Reuse catalog safety checks without invoking or changing macOS environment guards.
   src,dst=[json.loads(core.sql(self.config,k,core.CATALOG)) for k in ['source','target']]
   core.require(all(180000<=x['version']<190000 and not x['elevated'] and not x['neon_admin'] for x in [src,dst]),'Database roles/version unsafe')
@@ -74,16 +78,28 @@ class Adapter:
    p.stdin.write(b'BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY; SELECT pg_export_snapshot();\n');p.stdin.flush();snap=p.stdout.readline().decode().strip();core.require(bool(__import__('re').fullmatch('[a-fA-F0-9-]+',snap)),'Snapshot failed');yield snap
   finally:
    if p.poll() is None:p.terminate()
+   self.verified_snapshot=None
    p.wait();p.stdin.close();p.stdout.close()
  def integrity(self,side,snapshot):
+  if side=='source' and (self.plan.get('ec2_runtime') or 'synthetic_scope' in self.plan):
+   core.require(bool(snapshot),'Synthetic source requires the exported snapshot')
+   schema=scope.verify_inventory(core,self.plan,self.config,snapshot)
+   rows=core.fingerprint(self.config,side,snapshot)
+   scope.verify_rows(core,self.plan,rows)
+   self.verified_snapshot=snapshot
+   return (rows,schema,'')  # Exact inventory forbids sequences on the source.
   return (core.fingerprint(self.config,side,snapshot),core.schema_digest(self.config,side,snapshot),core.sequence_state(self.config,side))
  def s3(self): return self.aws.client('s3',region_name=self.plan['region'])
  def upload_encrypted(self,snapshot):
   # Encrypted bytes stream to multipart S3. No plaintext archive or ciphertext file.
+  dump_options=[]
+  if self.plan.get('ec2_runtime') or 'synthetic_scope' in self.plan:
+   core.require(bool(snapshot) and snapshot==self.verified_snapshot,'Synthetic snapshot is unverified')
+   dump_options=scope.DUMP_OPTIONS
   client=self.s3();bucket=self.plan['bucket'];key=self.plan['object_key']
   upload=client.create_multipart_upload(Bucket=bucket,Key=key,ServerSideEncryption='AES256',Metadata={'recovery-fingerprint':protocol.fingerprint(self.plan)});self.upload=(bucket,key,upload['UploadId'])
   env=core.safe_env(self.config)
-  dump=subprocess.Popen(['pg_dump','-w','-Fc','--no-owner','--no-privileges','--snapshot='+snapshot,'-d','service='+self.config['source_service']],env=env,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL)
+  dump=subprocess.Popen(['pg_dump','-w','-Fc','--no-owner','--no-privileges',*dump_options,'--snapshot='+snapshot,'-d','service='+self.config['source_service']],env=env,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL)
   age=subprocess.Popen(['age','-r',self.config['recipient']],stdin=dump.stdout,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL);dump.stdout.close();parts=[]
   try:
    total=0

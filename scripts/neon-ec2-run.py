@@ -16,7 +16,7 @@ def validate_services(plan,config,services):
   if side+'_dns_answers' in plan or 'hostaddr' in service:
    _,pin=a.protocol.approved_dns(plan,side)
    a.core.require(service.get('hostaddr')==pin,'Exact reviewed hostaddr required')
-  if side=='target' and plan.get('target_role'):a.core.require(service['user']==plan['target_role'],'Restore role mismatch')
+  if plan.get(side+'_role'):a.core.require(service['user']==plan[side+'_role'],'Database role mismatch')
 
 def main():
  os.umask(0o077)
@@ -26,6 +26,7 @@ def main():
   a.core.require(sys.platform.startswith('linux') and not os.environ.get('CI'),'Trusted EC2 only')
   plan=json.loads(a.core.private_file(args.plan).read_text());a.protocol.fingerprint(plan)
   a.core.require(plan.get('ec2_runtime') is True,'Explicit EC2 runtime plan required')
+  a.scope.check_plan(plan,a.protocol.require)
   # Dynamic references are resolved outside this process by official asm-exec.
   # No Secrets Manager values are fetched by this program or printed.
   material=json.loads(os.environ.pop('RECOVERY_CONFIGURATION'))
@@ -40,7 +41,7 @@ def main():
   import re
   entries=[re.split(r'(?<!\\):',line) for line in material['pass_file'].splitlines() if line and not line.startswith('#')]
   expected={(services[k]['host'],'5432',services[k]['dbname'],services[k]['user']) for k in [config['source_service'],config['target_service']]}
-  a.core.require(len(entries)==2 and all(len(e)==5 and tuple(e[:4]) in expected and e[4] for e in entries),'Exact passfile entries required')
+  a.core.require(len(entries)==2 and all(len(e)==5 and e[4] for e in entries) and {tuple(e[:4]) for e in entries}==expected,'Exact passfile entries required')
   import boto3
   adapter=a.Adapter(boto3,plan,config,root);adapter.attest(plan);adapter.preflight(plan);adapter.verify_independent_key()
   observed={side:json.loads(a.core.sql(config,side,a.core.CATALOG)) for side in ['source','target']}

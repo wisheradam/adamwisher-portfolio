@@ -1,0 +1,72 @@
+{
+  "authorized_if_approved": [
+    "Reverify the existing infrastructure, window, DNS, target catalog and effective role isolation using metadata only.",
+    "Create only the named source database from template0; verify empty provenance. Apply only the pinned migrations and fixture.",
+    "Prepare the two named expiring SCRAM roles with the reviewed privileges; owner writes one pinned configuration secret version.",
+    "Pin the exact passing PR head artifact by S3 VersionId and SHA-256, verify and install it side by side on the same attested runner.",
+    "Execute catalog-only runtime preflight and record its full runtime fingerprint.",
+    "Revoke both temporary logins, clear their credentials and terminate their dedicated sessions on expiry, abort or completion."
+  ],
+  "aws": {
+    "account": "533267008693",
+    "configuration_secret_arn": "arn:aws:secretsmanager:eu-central-1:533267008693:secret:DatabaseSecretArn-ePqGcnzqDEj9-L4wifr",
+    "expires_at": "2026-11-18T12:45:00Z",
+    "key_version": "1868824d-9f2d-4994-ad77-3a5064111b52",
+    "region": "eu-central-1",
+    "runner": "i-0841611e524956db8",
+    "runner_stack": "adam-neon-recovery-pr14-7955d1df-r2-20261118",
+    "total_temporary_budget_usd": 5,
+    "vault_bucket": "adam-neon-vault-pr14-7955d1df-archive-elmv9oxmapwe"
+  },
+  "excluded": [
+    "existing source databases, schemas and application records",
+    "live row preflight, backup, restore or application rehearsal before runtime approval",
+    "new or extended runner",
+    "alternate Neon branch",
+    "network/IAM changes",
+    "retained vault changes",
+    "production, deployment, upgrades and merge"
+  ],
+  "input_sha256": {
+    "lib/admin/migrations/001_init.sql": "4f847c6d05fc5814311645813bccfac3d650d3ec367880f7e5039dee9fe5a666",
+    "lib/admin/migrations/002_security.sql": "34939e071b17e27e48270f4f19b2b7cd98dd1ea83612d0259ac11374cc39286b",
+    "lib/admin/migrations/003_apps_publishing.sql": "4f6d5e31fdfe9760dca454841710dcbd4056c34d42649edce93a84ccf3ad11db",
+    "lib/admin/migrations/004_modules.sql": "30c27327e65b8a4f2d72a5297a5041cc980371a54ec4e4e4dec56408f56b6701",
+    "lib/admin/migrations/005_publication_snapshots.sql": "017e94d8d2f44b26be9b206d648d93d2240d34c99f76a1cae2cfc780e850a010",
+    "scripts/neon-synthetic-fixture.sql": "b074858ebc13ace41b0e3ec98cae7bb19d71cfbebaca62d40c69063d63b28f83"
+  },
+  "neon": {
+    "expected_dns_answers": [
+      "3.77.164.229",
+      "18.192.71.94",
+      "63.178.183.218"
+    ],
+    "plan": "free_v3",
+    "postgres_major": 18,
+    "project": "shy-breeze-43898017",
+    "source": {
+      "branch": "br-wispy-darkness-b91vydbj",
+      "cidr": "3.77.164.229/32",
+      "connection_limit": 2,
+      "endpoint": "ep-morning-dew-b97in9dm.c-7.eu-central-1.aws.neon.tech",
+      "new_database": "recovery_synthetic_source_pr14_7955d1df",
+      "new_role": "recovery_synthetic_reader_pr14_7955d1df",
+      "template": "template0"
+    },
+    "target": {
+      "branch": "br-withered-wildflower-b9dm0qs3",
+      "cidr": "18.192.71.94/32",
+      "connection_limit": 1,
+      "database": "recovery_pr14_7955d1df",
+      "endpoint": "ep-delicate-cloud-b99oh03j.c-7.eu-central-1.aws.neon.tech",
+      "existing_role": "recovery_restore_pr14_7955d1df"
+    },
+    "tls": "verify-full; system roots"
+  },
+  "replaces": [
+    "1fb98280834dd980d968047838b6f186cb54cfcb6950bd0e5fe11f736a2c0805",
+    "db7fcbdd62eafe30d241c6b4a8bdba99394ef167bc7ae527dbc3146af8e699d4",
+    "e38a36951e1a3a0bfa65093d04a69030db0e05cc7ae1d5e95ab07758f6d276f0"
+  ],
+  "scope": "PR14 synthetic recovery setup and read-only preflight"
+}

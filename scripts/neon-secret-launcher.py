@@ -25,6 +25,7 @@ if __name__=='__main__':
   if any(os.environ.get(k) for k in ['ASM_EXEC_MCP_ENDPOINT','AWS_SECRETS_MANAGER_AGENT_ENDPOINT','NODE_OPTIONS','NODE_PATH','PYTHONPATH','PYTHONHOME']):raise ValueError('Runtime override')
   spec=importlib.util.spec_from_file_location('ec2',Path(__file__).with_name('neon-ec2-adapter.py'));ec2=importlib.util.module_from_spec(spec);spec.loader.exec_module(ec2)
   plan=json.loads(ec2.core.private_file(a.runtime_plan).read_text());ec2.protocol.fingerprint(plan)
+  ec2.scope.check_plan(plan,ec2.protocol.require)
   import boto3
   spec=importlib.util.spec_from_file_location('bindings',Path(__file__).with_name('neon-ec2-bindings.py'));bindings=importlib.util.module_from_spec(spec);spec.loader.exec_module(bindings)
   bindings.verify(boto3,plan)
