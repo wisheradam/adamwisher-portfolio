@@ -51,6 +51,7 @@ jobs:
           node scripts/test-recovery-acceptance-guard.mjs
           python3 scripts/test-ec2-protocol.py
           python3 scripts/test-neon-synthetic-scope.py
+          python3 scripts/test-neon-catalog-inspect.py
           python3 scripts/test-ec2-dns-pins.py
           python3 scripts/test-ec2-bootstrap.py
           python3 scripts/test-neon-secret-launcher.py
