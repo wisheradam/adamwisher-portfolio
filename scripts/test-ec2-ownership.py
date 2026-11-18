@@ -163,6 +163,47 @@ class RuntimeBindings(unittest.TestCase):
   runtime,runner,resources=self.runtime();runtime['ownership_receipt']['initializer_removed']=False;runtime['ownership_fingerprint']=o.digest(runtime['ownership_receipt'])
   with self.assertRaises(ValueError):self.verify_runtime(runtime,runner,resources)
 
+ def replacement(self):
+  runtime,runner,resources=self.runtime()
+  plan=runtime['provisioning_plan'];receipt=runtime['ownership_receipt']
+  version='1868824d-9f2d-4994-ad77-3a5064111b52'
+  plan['retained_key_version']=runtime['key_version']=version
+  runtime['synthetic_scope']={'fixture':'synthetic'}
+  receipt.pop('initializer');receipt.pop('initializer_removed')
+  receipt['runner_outputs']['InstanceId']='i-synthetic'
+  runner['Outputs'].append({'OutputKey':'InstanceId','OutputValue':'i-synthetic'})
+  resources['Runner']={'PhysicalResourceId':'i-synthetic'}
+  plan['parameters']['Expiry']='2099-01-01T00:00:00'
+  runner['Parameters'].append({'ParameterKey':'Expiry','ParameterValue':plan['parameters']['Expiry']})
+  runtime['ownership_fingerprint']=o.digest(receipt)
+  self.cfn.describe_secret.return_value={'ARN':self.arn,'VersionIdsToStages':{version:[b.stage(version)]}}
+  return runtime,runner,resources
+
+ def test_replacement_reuses_retained_key_without_initializer(self):
+  self.assertEqual(self.verify_runtime(*self.replacement())['InstanceId'],'i-synthetic')
+  self.cfn.describe_stacks.assert_not_called()
+  self.cfn.describe_secret.assert_called_once_with(SecretId=self.arn)
+
+ def test_replacement_rejects_wrong_key_version(self):
+  runtime,runner,resources=self.replacement()
+  runtime['key_version']='00000000-0000-0000-0000-000000000000'
+  with self.assertRaises(ValueError):self.verify_runtime(runtime,runner,resources)
+
+ def test_replacement_rejects_initializer_receipt(self):
+  runtime,runner,resources=self.replacement();receipt=runtime['ownership_receipt']
+  receipt['initializer_removed']=True
+  runtime['ownership_fingerprint']=o.digest(receipt)
+  with self.assertRaises(ValueError):self.verify_runtime(runtime,runner,resources)
+
+ def test_replacement_rejects_expiry_and_wrong_instance(self):
+  runtime,runner,resources=self.replacement()
+  resources['Runner']['PhysicalResourceId']='i-different'
+  with self.assertRaises(ValueError):self.verify_runtime(runtime,runner,resources)
+  resources['Runner']['PhysicalResourceId']='i-synthetic'
+  runtime['provisioning_plan']['parameters']['Expiry']='2000-01-01T00:00:00'
+  runner['Parameters'][-1]['ParameterValue']='2000-01-01T00:00:00'
+  with self.assertRaises(ValueError):self.verify_runtime(runtime,runner,resources)
+
 class ParameterBindings(unittest.TestCase):
  def test_runner_only_accepts_unallocated_inputs(self):
   p=module('plans','neon-ec2-plan')

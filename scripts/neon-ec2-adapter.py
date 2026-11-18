@@ -40,6 +40,8 @@ class Adapter:
   token=opener.open(req,timeout=3).read().decode()
   doc=json.loads(opener.open(urllib.request.Request('http://169.254.169.254/latest/dynamic/instance-identity/document',headers={'X-aws-ec2-metadata-token':token}),timeout=3).read())
   core.require(doc['accountId']==plan['account'] and doc['region']==plan['region'] and doc['instanceType']=='t3.small','Instance identity mismatch')
+  if 'retained_key_version' in plan.get('provisioning_plan',{}):
+   core.require(doc['instanceId']==plan['ownership_receipt']['runner_outputs']['InstanceId'],'Replacement instance mismatch')
   state=self.aws.client('ec2',region_name=plan['region']).describe_instances(InstanceIds=[doc['instanceId']])['Reservations'][0]['Instances'][0]
   core.require(state['MetadataOptions']['HttpTokens']=='required' and state['ImageId']==plan['ami'],'Instance settings mismatch')
   groups=self.aws.client('ec2',region_name=plan['region']).describe_security_groups(GroupIds=[g['GroupId'] for g in state['SecurityGroups']])['SecurityGroups']

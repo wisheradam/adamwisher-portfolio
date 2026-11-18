@@ -1,30 +1,49 @@
 {
   "authorized_if_approved": [
-    "Reverify the existing infrastructure, window, DNS, target catalog and effective role isolation using metadata only.",
-    "Create only the named source database from template0; verify empty provenance. Apply only the pinned migrations and fixture.",
-    "Prepare the two named expiring SCRAM roles with the reviewed privileges; owner writes one pinned configuration secret version.",
-    "Pin the exact passing PR head artifact by S3 VersionId and SHA-256, verify and install it side by side on the same attested runner.",
+    "Bind the exact final GitHub SHA, checked-in runner template, new UTC expiry, live ownership receipts, native DNS, AMI, and cumulative cost before mutation.",
+    "Confirm database isolation using catalog metadata before provisioning; stop if existing data can be reached or any bound input changes.",
+    "Delete only the exact expired runner stack using its original ownership and template receipt, then verify owned resources are absent; retain vault and key.",
+    "Provision one replacement runner from the existing template; require current runner attestation and IAM simulation denying retained-key writes.",
+    "Create only the named source database from template0; verify empty provenance and apply only the pinned migrations and fixture.",
+    "Prepare the two named expiring SCRAM roles with reviewed access; owner writes one pinned replacement configuration secret version.",
+    "Pin exact passing PR head by S3 VersionId and SHA-256, verify and install on the attested replacement runner.",
     "Execute catalog-only runtime preflight and record its full runtime fingerprint.",
-    "Revoke both temporary logins, clear their credentials and terminate their dedicated sessions on expiry, abort or completion."
+    "On expiry, abort or completion, revoke temporary logins, terminate their sessions, and remove only the replacement runner stack using its own receipt."
   ],
   "aws": {
     "account": "533267008693",
-    "configuration_secret_arn": "arn:aws:secretsmanager:eu-central-1:533267008693:secret:DatabaseSecretArn-ePqGcnzqDEj9-L4wifr",
-    "expires_at": "2026-11-18T12:45:00Z",
+    "expired_runner": {
+      "configuration_secret_arn": "arn:aws:secretsmanager:eu-central-1:533267008693:secret:DatabaseSecretArn-ePqGcnzqDEj9-L4wifr",
+      "expires_at": "2026-11-18T12:45:00Z",
+      "runner": "i-0841611e524956db8",
+      "runner_stack": "adam-neon-recovery-pr14-7955d1df-r2-20261118",
+      "stack_id": "arn:aws:cloudformation:eu-central-1:533267008693:stack/adam-neon-recovery-pr14-7955d1df-r2-20261118/a20d0360-e31b-11f1-acb8-06ffe8ce7fa3"
+    },
+    "key_stage": "RECOVERY_1868824d9f2d4994ad773a5064111b52",
     "key_version": "1868824d-9f2d-4994-ad77-3a5064111b52",
     "region": "eu-central-1",
-    "runner": "i-0841611e524956db8",
-    "runner_stack": "adam-neon-recovery-pr14-7955d1df-r2-20261118",
+    "replacement_runner": {
+      "configuration_secret": "single new runner-owned secret and one pinned version",
+      "encrypted_gp3_gib": 16,
+      "expiry": "concrete UTC timestamp selected and fingerprinted before any mutation",
+      "instance_count": 1,
+      "instance_type": "t3.small",
+      "key_access": "existing stage and version only, no initializer and no write grant",
+      "maximum_planned_incremental_usd": 2,
+      "maximum_window_hours": 8,
+      "stack_name": "adam-neon-recovery-pr14-7955d1df-r3-synthetic",
+      "ubuntu_24_04_ami_candidate": "ami-04bbcae8eccec8bce"
+    },
+    "run_id": "7955d1df474b450881f772c5e8d06b52",
     "total_temporary_budget_usd": 5,
-    "vault_bucket": "adam-neon-vault-pr14-7955d1df-archive-elmv9oxmapwe"
+    "vault_bucket": "adam-neon-vault-pr14-7955d1df-archive-elmv9oxmapwe",
+    "vault_stack_id": "arn:aws:cloudformation:eu-central-1:533267008693:stack/adam-neon-vault-pr14-7955d1df/bf273bb0-e270-11f1-8487-02ffe85685d3"
   },
   "excluded": [
     "existing source databases, schemas and application records",
-    "live row preflight, backup, restore or application rehearsal before runtime approval",
-    "new or extended runner",
-    "alternate Neon branch",
-    "network/IAM changes",
-    "retained vault changes",
+    "live row verification, backup, restore or application rehearsal before runtime approval",
+    "runner expiry extension, extra compute, alternate Neon branch, or network/IAM changes outside the exact runner template",
+    "new or edited recovery key, initializer, retained vault changes",
     "production, deployment, upgrades and merge"
   ],
   "input_sha256": {
@@ -66,7 +85,8 @@
   "replaces": [
     "1fb98280834dd980d968047838b6f186cb54cfcb6950bd0e5fe11f736a2c0805",
     "db7fcbdd62eafe30d241c6b4a8bdba99394ef167bc7ae527dbc3146af8e699d4",
-    "e38a36951e1a3a0bfa65093d04a69030db0e05cc7ae1d5e95ab07758f6d276f0"
+    "e38a36951e1a3a0bfa65093d04a69030db0e05cc7ae1d5e95ab07758f6d276f0",
+    "dc46cac978f58081e00ad46c563af827adbdd3c9015f200d9d66e2a8c5342763"
   ],
-  "scope": "PR14 synthetic recovery setup and read-only preflight"
+  "scope": "PR14 synthetic source setup, expired runner cleanup, one replacement runner, and metadata-only preflight"
 }

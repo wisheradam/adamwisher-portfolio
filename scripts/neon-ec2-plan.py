@@ -28,6 +28,9 @@ def runtime_plan(plan,receipt,inputs):
   if 'synthetic_scope' in value:
    o.check(n['source']['role']==scope.SOURCE_ROLE)
    scope.check_plan(value,o.check)
+ if 'retained_key_version' in plan:
+  o.check(value.get('synthetic_scope') and value.get('key_version')==plan['retained_key_version'])
+  value['object_key']='recovery/'+plan['run_id']+'-'+o.digest(receipt['runner']['stack_id'])+'.age'
  protocol.fingerprint(value);return value
 
 def main():

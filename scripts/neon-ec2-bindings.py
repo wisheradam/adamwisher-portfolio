@@ -1,4 +1,5 @@
 """Bind runtime to newly created, verified vault/runner receipts; metadata reads only."""
+from datetime import datetime, timezone
 import importlib.util,re
 from pathlib import Path
 s=importlib.util.spec_from_file_location('own',Path(__file__).with_name('neon-ec2-ownership.py'));o=importlib.util.module_from_spec(s);s.loader.exec_module(o)
@@ -17,6 +18,18 @@ def verify(boto,runtime,initializing=False):
  o.check(actual==plan['parameters'])
  for parameter,key in [('ReviewedAmi','ami'),('SourceCidr','source_cidr'),('TargetCidr','target_cidr')]:o.check(runtime[key]==actual[parameter])
  o.check(actual['ArchiveBucket']==vault['Bucket'] and actual['KeySecretArn']==vault['KeySecretArn'] and actual['VaultStackId']==receipt['vault']['stack_id'])
+ if 'retained_key_version' in plan:
+  # A replacement reuses the vault's key, never an initializer or another runner's receipt.
+  o.check(not initializing and 'initializer' not in receipt and 'initializer_removed' not in receipt)
+  o.check(runtime.get('synthetic_scope') and out['InstanceId']==resources['Runner']['PhysicalResourceId'])
+  o.check(datetime.now(timezone.utc)<datetime.fromisoformat(actual['Expiry']).replace(tzinfo=timezone.utc))
+  version=plan['retained_key_version']
+  o.check(version==runtime['key_version'])
+  meta=boto.client('secretsmanager',region_name=o.REGION).describe_secret(SecretId=vault['KeySecretArn'])
+  o.check(meta['ARN']==vault['KeySecretArn'] and not meta.get('DeletedDate'))
+  versions=meta['VersionIdsToStages']
+  o.check(set(versions)=={version} and stage(version) in versions[version])
+  return out
  if initializing:
   init,_=o.stack(cfn,plan,receipt,'initializer',stacks.stacks()['initializer'])
   o.check(init['StackStatus']=='CREATE_COMPLETE' and not receipt.get('initializer_removed'))
