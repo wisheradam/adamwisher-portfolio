@@ -10,3 +10,6 @@ playwright-report/
 test-results/
 *.tsbuildinfo
 .data/
+
+# Local Python validation bytecode
+__pycache__/

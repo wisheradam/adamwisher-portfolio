@@ -1,0 +1,7 @@
+{
+  "account": "533267008693",
+  "region": "eu-central-1",
+  "run_id": "7955d1df474b450881f772c5e8d06b52",
+  "vault_stack": "adam-neon-vault-pr14-7955d1df",
+  "runner_stack": "adam-neon-recovery-pr14-7955d1df"
+}

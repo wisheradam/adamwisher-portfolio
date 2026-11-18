@@ -12,6 +12,16 @@ permissions:
 jobs:
   quality:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_PASSWORD: isolated-ci-only
+          POSTGRES_DB: admin_review
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 10s
+          --health-timeout 5s --health-retries 5
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -24,6 +34,40 @@ jobs:
         run: npm ci
       - name: Validate repository engineering skills
         run: node scripts/validate-engineering-skills.mjs
+      - name: Offline iMac recovery preparation guards
+        run: |
+          python3 scripts/test-neon-macos-recovery.py
+          node scripts/test-neon-recovery-sql.mjs
+      - name: CloudFormation recovery schema and Guard validation
+        run: bash scripts/install-recovery-qa.sh
+      - name: EC2 recovery synthetic acceptance
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y age
+          python3 scripts/test-ec2-recovery.py
+          python3 scripts/test-ec2-stacks.py
+          python3 scripts/test-ec2-control.py
+          python3 scripts/test-ec2-ownership.py
+          node scripts/test-recovery-acceptance-guard.mjs
+          python3 scripts/test-ec2-protocol.py
+          python3 scripts/test-neon-synthetic-scope.py
+          python3 scripts/test-neon-catalog-inspect.py
+          python3 scripts/test-ec2-dns-pins.py
+          python3 scripts/test-ec2-bootstrap.py
+          python3 scripts/test-neon-secret-launcher.py
+          RECOVERY_TEST_CONTAINER="$(docker ps --filter ancestor=postgres:18 --format '{{.ID}}')" python3 scripts/test-ec2-e2e.py
+      - name: Neon adapter contract
+        run: node scripts/test-neon-adapter.mjs
+      - name: Migration tracking and recovery
+        run: node scripts/test-migration-engine.mjs
+      - name: Encrypted synthetic content restore
+        run: node scripts/test-encrypted-content-restore.mjs
+      - name: Disposable PostgreSQL compatibility and restore
+        env:
+          TEST_POSTGRES_URL: postgresql://postgres:isolated-ci-only@127.0.0.1:5432/admin_review
+        run: |
+          node scripts/test-postgres-integration.mjs
+          node scripts/test-publication-runtime.mjs
       - name: Lint
         run: npm run lint
       - name: Type check

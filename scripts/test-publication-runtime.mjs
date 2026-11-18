@@ -1,10 +1,11 @@
 import {PGlite} from '@electric-sql/pglite';
+import {postgresReviewDatabase} from './postgres-review-store.mjs';
 import {strict as assert} from 'node:assert';
 import {readFileSync,readdirSync} from 'node:fs';
 import {createRequire} from 'node:module';
 import vm from 'node:vm';
 import ts from 'typescript';
-const require=createRequire(import.meta.url),db=new PGlite(),cache={};let assertions=0;
+const require=createRequire(import.meta.url),db=process.env.TEST_POSTGRES_URL?await postgresReviewDatabase():new PGlite(),cache={};let assertions=0;
 const query=async(sql,values=[])=>{return (await db.query(sql,values)).rows;};
 const store={query,transaction:fn=>db.transaction(tx=>fn(async(sql,values=[])=>{return (await tx.query(sql,values)).rows;}))};
 function load(name){if(cache[name])return cache[name];const exports={};cache[name]=exports;const code=ts.transpileModule(readFileSync(`lib/admin/${name}.ts`,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;vm.runInNewContext(code,{exports,process,require:id=>id==='server-only'?{}:id==='./db'?{store}:id.startsWith('./')?load(id.slice(2)):require(id)},{filename:name});return exports;}

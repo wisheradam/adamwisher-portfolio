@@ -1,0 +1,50 @@
+{
+  "account": "533267008693",
+  "region": "eu-central-1",
+  "run_id": "7955d1df474b450881f772c5e8d06b52",
+  "vault_stack": "adam-neon-vault-pr14-7955d1df",
+  "runner_stack": "adam-neon-recovery-pr14-7955d1df",
+  "parameters": {
+    "ReviewedAmi": "ami-04bbcae8eccec8bce",
+    "ArchiveBucket": "adam-neon-vault-pr14-7955d1df-archive-elmv9oxmapwe",
+    "KeySecretArn": "arn:aws:secretsmanager:eu-central-1:533267008693:secret:RecoveryIdentity-VMvNE5HfJdJx-9t1vj5",
+    "VaultStackId": "arn:aws:cloudformation:eu-central-1:533267008693:stack/adam-neon-vault-pr14-7955d1df/bf273bb0-e270-11f1-8487-02ffe85685d3",
+    "SourceCidr": "3.77.164.229/32",
+    "TargetCidr": "18.192.71.94/32",
+    "Expiry": "2026-11-17T23:30:00"
+  },
+  "neon": {
+    "project_id": "shy-breeze-43898017",
+    "source": {
+      "branch_id": "br-wispy-darkness-b91vydbj",
+      "branch_name": "integration-review",
+      "database": "neondb",
+      "endpoint": "ep-morning-dew-b97in9dm.c-7.eu-central-1.aws.neon.tech",
+      "endpoint_id": "ep-morning-dew-b97in9dm",
+      "dns_answers": [
+        "3.77.164.229",
+        "18.192.71.94",
+        "63.178.183.218"
+      ]
+    },
+    "target": {
+      "branch_id": "br-withered-wildflower-b9dm0qs3",
+      "branch_name": "integration-restore-pr14-7955d1df",
+      "database": "recovery_pr14_7955d1df",
+      "database_id": 531091,
+      "role": "recovery_restore_pr14_7955d1df",
+      "endpoint": "ep-delicate-cloud-b99oh03j.c-7.eu-central-1.aws.neon.tech",
+      "endpoint_id": "ep-delicate-cloud-b99oh03j",
+      "dns_answers": [
+        "3.77.164.229",
+        "18.192.71.94",
+        "63.178.183.218"
+      ],
+      "empty_catalog_verified": true,
+      "role_login": false,
+      "init_source": "parent-schema",
+      "database_template": "template0"
+    },
+    "dns_verified_at_utc": "2026-11-17T16:06:52Z"
+  }
+}
