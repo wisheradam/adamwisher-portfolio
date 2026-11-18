@@ -68,7 +68,7 @@ explicit approval of the observed runtime fingerprint.
    rows. Present the resulting runtime fingerprint for live recovery approval.
    During approved recovery, the runner verifies DDL and expected row
    fingerprint on the same repeatable-read exported snapshot before any
-   upload, then dumps only `public`, excluding large objects. The existing
+   upload, then dumps only the 17 allowlisted `public` tables, excluding large objects. The existing
    encrypted, versioned archive and transactional restore checks remain.
 8. On abort, completion or expiry, disable both dedicated logins, clear
    passwords, terminate only their sessions and verify there are none. Revoke

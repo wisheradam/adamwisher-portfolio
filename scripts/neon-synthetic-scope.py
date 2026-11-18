@@ -36,7 +36,10 @@ SELECT json_build_object(
  'large_objects', (SELECT count(*) FROM pg_largeobject_metadata)
 )
 """
-DUMP_OPTIONS = ['--schema=public', '--strict-names', '--no-large-objects', '--no-comments']
+# Select the exact relations and their dependent table objects. The standard
+# public schema already exists on a pristine restore target.
+DUMP_OPTIONS = ['--strict-names', '--no-large-objects', '--no-comments',
+                *[f'--table=public.{table}' for table in TABLES]]
 
 
 def check_plan(plan, require):
