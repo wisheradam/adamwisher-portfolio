@@ -54,10 +54,10 @@ def run_subject():
     if scenario == 'cleanup-failure':
         original_revoke = inspection.revoke
 
-        def fail_cleanup(connection, original, oid):
+        def fail_cleanup(connection, original, oid, **options):
             if inspection.baseline(connection)['connect']:
                 raise inspection.Stop('Injected unavailable cleanup channel')
-            return original_revoke(connection, original, oid)
+            return original_revoke(connection, original, oid, **options)
         inspection.revoke = fail_cleanup
     return inspection.main()
 
@@ -157,6 +157,26 @@ class CatalogInspection(unittest.TestCase):
         while inspection.normalized(inspection.baseline(self.inspector)) != self.original:
             self.assertLess(time.monotonic(), deadline, 'Orphaned watchdog did not revoke')
             time.sleep(0.1)
+        self.restored()
+
+    def test_concurrent_operator_is_rejected_before_grant(self):
+        self.inspector.run(f'SELECT pg_advisory_lock({inspection.OPERATOR_LOCK})')
+        try:
+            result = self.run_case('normal')
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn('Another operator inspection holds the lock', result.stderr)
+        finally:
+            self.inspector.run(f'SELECT pg_advisory_unlock({inspection.OPERATOR_LOCK})')
+        self.restored()
+
+    def test_probe_cannot_change_drifted_permissions(self):
+        inspection.change(self.inspector, inspection.GRANT, self.original, self.oid, temporary=True)
+        try:
+            with self.assertRaisesRegex(inspection.Stop, 'probe detected baseline drift'):
+                inspection.revoke(self.inspector, self.original, self.oid, allow_change=False)
+            self.assertTrue(inspection.baseline(self.inspector)['connect'])
+        finally:
+            inspection.revoke(self.inspector, self.original, self.oid)
         self.restored()
 
     def test_cleanup_failure_never_reports_success(self):

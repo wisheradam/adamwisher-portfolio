@@ -70,6 +70,7 @@ TARGET_OID = 17796
 OWNER_ACL = OWNER + '=CTc/' + OWNER
 TEMP_ACL = INSPECTOR + '=c/' + OWNER
 LOCK = 14795144531
+OPERATOR_LOCK = 14795144532
 ORIGINAL_GRANTOR = 'cloud_admin'
 WINDOW = 45  # Reserve 15 seconds within the approved 60-second window.
 BASELINE = f"""
@@ -204,11 +205,12 @@ def change(connection, sql, original, oid, *, temporary):
         raise
 
 
-def revoke(connection, original, oid):
+def revoke(connection, original, oid, *, allow_change=True):
     connection.run(f'SELECT pg_advisory_lock({LOCK})')
     try:
         row = baseline(connection)
         if normalized(row) != original:
+            require(allow_change, 'Watchdog probe detected baseline drift')
             verify_baseline(row, oid, temporary=True)
             require(row['memberships'] == original['memberships'], 'Watchdog membership drift')
             change(connection, REVOKE, original, oid, temporary=False)
@@ -269,7 +271,7 @@ def watchdog(passfile):
         verify_baseline(row, TARGET_OID)
         require(normalized(row) == original, 'Watchdog baseline differs')
         # Exercise lock acquisition and cleanup verification against the unchanged baseline.
-        revoke(connection, original, TARGET_OID)
+        revoke(connection, original, TARGET_OID, allow_change=False)
         print('READY ' + connection.run('SELECT pg_backend_pid()')[0], flush=True)
         # Parent death closes stdin and triggers cleanup immediately.
         if select.select([sys.stdin], [], [], WINDOW)[0]:
@@ -295,6 +297,8 @@ def orchestrate(settings, passfile):
     try:
         maintenance = open_maintenance(settings)
         operator_cleanup = open_maintenance(settings)
+        require(operator_cleanup.run(f'SELECT pg_try_advisory_lock({OPERATOR_LOCK})') == ['t'],
+                'Another operator inspection holds the lock')
         pids = {session.run('SELECT pg_backend_pid()')[0]
                 for session in (maintenance, operator_cleanup)}
         require(len(pids) == 2, 'Independent authenticated maintenance sessions required')

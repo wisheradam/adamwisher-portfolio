@@ -50,3 +50,5 @@ service on localhost and synthetic roles only. The tests exercise a successful
 inspection, a target connection failure, a watchdog authentication failure, its
 deadline, SIGTERM, parent SIGKILL and loss of both cleanup paths. The dual cleanup
 failure must exit with no success output and explicitly require independent cleanup.
+The suite also checks that a second operator is denied and that the read-only
+watchdog probe never attempts a revoke when it encounters baseline drift.
