@@ -44,6 +44,52 @@ References: [Amplify SSR environment settings](https://docs.aws.amazon.com/ampli
 [Neon plans](https://neon.com/docs/introduction/plans),
 [Neon draft design](https://github.com/wisheradam/adamwisher-portfolio/blob/28e7eefb3d5c3786da395a0a2570b8c7853a9339/docs/neon-postgresql.md).
 
+## Recovery infrastructure
+
+The production Amplify app and Frankfurt recovery resources operate in separate
+regions and have separate roles. The Frankfurt CloudFormation vault stack and
+expired runner stack are present in the read-only inventory. The proposed
+replacement and private portfolio media bucket belong to separate reviews.
+
+```mermaid
+flowchart LR
+    main["GitHub main"] --> amplify["Stockholm Amplify SSR"]
+    operator["Private operator"] --> ssm["Systems Manager session"]
+    ssm --> runner["Frankfurt EC2 recovery runner"]
+    source["Dedicated synthetic source"] --> runner
+    runner --> vault["Retained versioned S3 vault"]
+    secret["Secrets Manager pinned versions"] --> runner
+    vault --> runner
+    runner --> target["Isolated Neon restore database"]
+    scheduler["EventBridge Scheduler"] --> runner
+```
+
+The diagram describes the reviewed recovery data path. An expired runner has no
+active instance, and a replacement must pass the [rehearsal gates](recovery.md#gates-before-a-live-rehearsal).
+
+- **CloudFormation and networking.** The runner template uses a dedicated VPC
+  and security group, no ingress, two pinned PostgreSQL destinations and HTTPS
+  egress for required services and reviewed downloads. It requires IMDSv2 and
+  encrypted, delete-on-termination gp3. Scope and expiration are bound to the
+  approved artifact and ownership receipt.
+- **Systems Manager and IAM.** Private Session Manager access replaces SSH.
+  The instance role can read its exact recovery secrets and access the permitted
+  vault prefix. Key initialization used a separate temporary policy, later
+  removed. Verify effective write denial against the retained key before using a
+  replacement. The scheduler role can terminate only the exact instance.
+- **Encryption and retention.** PostgreSQL backup bytes pass through age before
+  S3 storage. The vault applies SSE-S3 AES256, object versioning, public-access
+  blocking and a TLS-only policy. Secrets Manager retains the version-bound age
+  identity separately from the temporary connection configuration. The vault
+  and held evidence survive runner teardown.
+- **Cost and expiry.** One-time Scheduler termination covers compute. The
+  operator verifies remaining EBS, AWS resources and PostgreSQL access using the
+  reviewed cleanup procedure. Confirm cumulative cost evidence, current rates
+  and time limits before launch. See the [cost and cleanup gates](recovery.md#gates-before-a-live-rehearsal).
+
+[CloudFormation recovery design](https://github.com/wisheradam/adamwisher-portfolio/blob/28e7eefb3d5c3786da395a0a2570b8c7853a9339/docs/neon-ec2-recovery.md) ·
+[Systems Manager Session Manager](https://docs.aws.amazon.com/systems-manager/latest/userguide/session-manager.html)
+
 ## Local setup and schema maintenance
 
 1. Use Node.js 20 and `npm ci`. Review [the environment template](../../.env.example)
@@ -81,6 +127,38 @@ IDs and reconciles public Experience, Education and Training entries without
 replacing Admin edits. Review the report and compare source/destination counts
 before approving a cutover. Local review stores and historical exports require
 independent provenance before they can be treated as production sources.
+
+## Account and publishing operations
+
+1. Use an existing SUPER_ADMIN for user creation, role changes and deactivation.
+   Grant the minimum role needed. Record the change, test that prior sessions
+   fail where applicable, and check that an active SUPER_ADMIN remains.
+   Use the authenticated Settings panel for a user's own password change.
+2. Make changes to working content and check the Admin preview where available.
+   For snapshot modules, verify the saved working record before explicit
+   publication. Confirm eligible parent relationships, route gates and published
+   content with a separate anonymous browser.
+3. Archive to unpublish or use an approved delete operation. Verify the public
+   response, child visibility, metadata and sitemap as applicable. Confirm the
+   audit event and preserve the intended working copy. Follow
+   [publication and rollback](publication.md) for legacy Project differences.
+4. For a failed mutation, check HTTP status, role, Origin and request target,
+   then the exact driver, schema and audit state. A stale write needs a refresh
+   and a new reviewed edit. For a timeout or ambiguous commit, reconcile the
+   current working row, snapshot and audit before retrying.
+
+## Incident response
+
+Record time, environment, revision, affected routes or identities and sanitized
+error evidence. Preserve relevant audit and hosting records through the trusted
+operator channel. For suspected account exposure, have an authorized
+SUPER_ADMIN contain the affected access using account deactivation or credential
+rotation as applicable. Confirm old sessions fail and keep the last active
+SUPER_ADMIN available. Credential exposure beyond the app requires scoped
+rotation through the owning provider. Check anonymous routes and files if
+publication privacy was affected. For a recovery privilege incident, use the
+independent cleanup channel and verify the exact baseline and open sessions
+before closing the incident. Escalate production mutations for approval.
 
 ## Backup and recovery
 
@@ -123,3 +201,23 @@ constraints, table counts, migration versions and object references. Verify Admi
 login and revocation, draft privacy, public metadata, publication and unpublication.
 A code rollback leaves database, media and audit writes in place. Record the
 rollback decision and reconcile writes that occurred after a backup.
+
+
+## Release and rollback
+
+1. Identify the exact PR head, reviewed base, migration set, deployment
+   triggers, environment and scope of data changes. Require exact-head CI and
+   the applicable live staging evidence described in [Testing](testing.md).
+2. Verify database and media recovery evidence, scope operator permissions,
+   and record the intended migration, deployment and data rollback boundaries.
+   Obtain production release authorization before merging. Amplify main Auto
+   Build can start a deployment after the merge.
+3. After the authorized release, verify the Amplify job, revision and domain.
+   Check Admin sign-in and revocation, role denials, persistent writes across
+   a restart, draft isolation, direct routes, metadata, sitemap and media.
+   Record the observed results and reconcile migrations and backups.
+4. If a rollback is authorized, select the last known good application release
+   or previous configuration and independently reconcile committed database
+   and media changes. Code and configuration rollback leave those writes in
+   place. Follow the reviewed backup procedure for data restoration and
+   validate the same permissions and public surface after recovery.

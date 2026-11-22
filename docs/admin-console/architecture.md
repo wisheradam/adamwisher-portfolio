@@ -25,6 +25,20 @@ The private `/projects` area has its own
 Admin sessions do not grant access there. Files delivered by the Admin Media API
 require an Admin session with content-view permission.
 
+```mermaid
+flowchart LR
+    admin["Admin browser"] --> routes["Admin pages and Node route handlers"]
+    routes --> guard["Session, RBAC and input validation"]
+    guard --> store["Admin Store"]
+    store --> local["PGlite local and CI"]
+    store --> aurora["Aurora Data API adapter on main"]
+    store -. "Draft PR 14" .-> neon["Neon PostgreSQL adapter"]
+    guest["Anonymous browser"] --> publicRoutes["Public pages and metadata"]
+    publicRoutes --> static["Source-controlled content"]
+    publicRoutes --> readers["Eligibility and cutover readers"]
+    readers --> store
+```
+
 ## Authentication and settings
 
 - [Login](../../app/api/admin/login/route.ts) normalizes the email, checks the

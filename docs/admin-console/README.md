@@ -9,8 +9,12 @@ a public route uses depends on that route's publication and cutover code.
 | [Architecture and security](architecture.md) | Trace requests, accounts, sessions, permissions, validation and audit records |
 | [Module reference](modules.md) | Find tables, Admin APIs, public consumers and limitations for each module |
 | [Publication and cutover](publication.md) | Follow working edits through publication, parent filtering and rollback |
+| [Database architecture](database.md) | Follow schemas, constraints, transactions and driver-specific migrations |
 | [Infrastructure and operations](operations.md) | Set up a local environment, understand hosting and database choices, and plan recovery |
-| [Development history and verification](history.md) | Check merge, CI and deployment evidence and see open release gates |
+| [Neon recovery rehearsal](recovery.md) | Review owner inspection evidence, runner and vault history, and live recovery gates |
+| [Testing and release evidence](testing.md) | Reproduce local, CI, disposable PostgreSQL and browser checks |
+| [Development history](history.md) | Trace implementation, defects, PRs and historical CI |
+| [Current status and roadmap](status.md) | Identify release, recovery and operational dependencies |
 
 ## Scope and maintenance
 

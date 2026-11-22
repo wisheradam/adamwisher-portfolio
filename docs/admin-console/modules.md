@@ -22,7 +22,7 @@ deletion removes the override row.
 | Media · `/admin/media`, `media` | `media_assets` stores upload metadata and storage keys. Use collection POST to upload, detail PATCH to edit text, PUT to replace, DELETE to soft-delete and `media/[id]/file` to read bytes. Accepts PNG/JPEG/WebP/PDF up to 10 MiB. Referenced assets cannot be deleted. | On main, local files are authenticated Admin-only, and Aurora mode rejects this local storage path. Main replacement updates the same media ID and removes the old file on a best-effort basis. Back up referenced files before replacement. The private S3 adapter and publication-gated public file route are [draft work](history.md#open-work). |
 | SEO · `modules/seo` | `seo_metadata` holds path, title/description, canonical and Open Graph overrides, robots controls and an optional media reference. | Configuration uses ordinary content edit permission, with no snapshot. Applies when the database source is active and route eligibility passes. The [SEO guide](../seo.md) describes canonical, sitemap, social-image and noindex behavior. |
 | Redirects · `modules/redirects` | `redirects` maps unique source path to destination, HTTP status 301/302, enabled state and notes. Validation checks protected paths, loops and matching routes. | Immediate configuration when both database and redirect gates are enabled. Middleware asks `/api/public/redirect` for a lookup. Admin, API and protected Projects paths are excluded. |
-| Feature Flags · `modules/feature-flags` | `feature_flags` stores an allowlisted key, enabled state and description. Delete restores code defaults. | Runtime consumers include Apps listing, History and Ask Adam. The schema also accepts `show_education` and `show_experimental_projects`, there are no callers for these keys on main. |
+| Feature Flags · `modules/feature-flags` | `feature_flags` stores an allowlisted key, enabled state and description. Delete restores code defaults. | Runtime consumers include Apps listing, History and Ask Adam. The schema also accepts `show_education` and `show_experimental_projects`. Main has no runtime callers for these keys. |
 | Users and Access · `/admin/users`, `users` | `admin_users` stores unique email, salted hash, role, active flag, session version and login metadata. GET/POST for collection and PATCH for role or activation. | SUPER_ADMIN only. Role or active-state changes revoke sessions, and the last active SUPER_ADMIN is protected. Settings provides change-own-password. No public user API or snapshot. |
 
 Every key above is relative to `/api/admin/`. Structured module panels live at
@@ -31,3 +31,31 @@ Reads of redirects and flags also require their management permissions. Use the
 [record routes](../../app/api/admin/records),
 [module routes](../../app/api/admin/modules), [media routes](../../app/api/admin/media)
 and [user routes](../../app/api/admin/users) as the method and status-code reference.
+
+
+## Route and authorization details
+
+- **Projects and Apps.** Both use record collection and detail routes. Reader
+  roles can view Admin data. Editors create and edit working rows and access
+  authenticated previews. A SUPER_ADMIN performs publication, unpublication and
+  deletion. The legacy Project edit restriction applies while already published.
+- **Experience, Education, Certifications, Releases and Timeline.** Use the
+  structured collection and detail routes with the API keys above. Editors save
+  working records. SUPER_ADMIN controls release and deletion. Validate date
+  ranges and referenced IDs before writing. For Releases and Timeline, check
+  parent publication for every linked object before relying on a public listing.
+- **Media.** All three roles can read through the protected Admin file route.
+  Editors can upload, edit metadata and replace bytes. SUPER_ADMIN deletes.
+  References may come from working content or a published snapshot. A local
+  file and its metadata have independent storage semantics.
+- **SEO.** Ordinary content readers can view, editors can create and patch,
+  and SUPER_ADMIN can delete overrides. There is no preview-to-public promotion
+  step. A valid override on an ineligible route cannot grant public eligibility.
+- **Redirects and Feature Flags.** Both reads and writes require SUPER_ADMIN
+  management permission. A redirect row is soft-deleted. Flags are removed
+  directly to restore code defaults. Verify both configured gates before testing
+  a managed redirect with an anonymous request.
+- **Users.** The collection lists and creates. The detail endpoint patches an
+  approved role or active status; it has no remove-user method. Password
+  self-service is a separate authenticated endpoint. See the
+  [account runbook](operations.md#account-and-publishing-operations).

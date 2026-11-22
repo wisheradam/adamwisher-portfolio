@@ -34,6 +34,18 @@ requests are still accepted and do not get that stale-edit check. Migration 005
 backfills then-current eligible legacy content and protects against resurrecting
 already-unpublished rows on rerun. It cannot reconstruct an older approval.
 
+```mermaid
+flowchart LR
+    editor["Admin working edit"] --> row["Working record"]
+    publisher["Authorized publish"] --> tx["Validated transaction with row lock"]
+    row --> tx
+    tx --> snapshot["Current published snapshot"]
+    tx --> audit["Audit event"]
+    snapshot --> gate["Visibility, parent and cutover gates"]
+    gate --> publicPage["Eligible public response"]
+    unpublish["Authorized archive or delete"] --> removal["Remove snapshot and audit atomically"]
+```
+
 ## Public visibility
 
 A current snapshot must be PUBLIC and non-deleted. Releases and Timeline also

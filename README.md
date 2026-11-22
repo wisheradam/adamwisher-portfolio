@@ -1,6 +1,8 @@
 # adamwisher.com — foundation
 
-See the [Admin Console and engineering handbook](docs/admin-console/README.md) for the current application, publication workflow, infrastructure, and recovery procedures.
+## Engineering documentation
+
+The [Admin Console handbook](docs/admin-console/README.md) covers the application, modules, publishing, databases, infrastructure, testing and recovery.
 
 ## Design reference
 
