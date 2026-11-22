@@ -1,5 +1,7 @@
 # adamwisher.com — foundation
 
+See the [Admin Console and engineering handbook](docs/admin-console/README.md) for the current application, publication workflow, infrastructure, and recovery procedures.
+
 ## Design reference
 
 [Editable desktop project in Figma](https://www.figma.com/design/lkL7HRzIdYIoQt5ZMd6Dxd) — six public desktop screens, reusable components, Auto Layout, and editable text and vector artwork. See [the Figma handoff](docs/figma-desktop.md) for the screen inventory, source tokens, scope, and validation notes.
